@@ -4,6 +4,7 @@ const MESSAGE_TYPE = {
 }
 
 async function startCapture(displayMediaOptions) {
+  /** @type {MediaStream} */
   let captureStream = null;
 
   let socket;
@@ -11,7 +12,9 @@ async function startCapture(displayMediaOptions) {
     captureStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
     const data = await setupWebSocket();
     socket = data.socket;
-    captureStream.getTracks().forEach(track => data.peerConnection.addTrack(track, captureStream));
+    captureStream.getTracks().forEach(track => {
+      data.peerConnection.addTrack(track, captureStream)
+    });
   } catch (err) {
     console.error("Error: ", err);
   }
@@ -42,6 +45,9 @@ function createListeners() {
         if (localVideo) {
           localVideo.srcObject = data.captureStream;
         }
+        data.captureStream.getTracks().forEach(track => {
+          track.onended = localVideo.srcObject = null;
+        });
       });
   });
   document.getElementById('stop').addEventListener('click', (event) => {

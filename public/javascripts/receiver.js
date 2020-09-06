@@ -134,6 +134,12 @@ function createPeerConnection() {
     if (!video.srcObject) {
       video.srcObject = event.streams[0];
     }
+    const onStreamEnd = () => {
+      video.srcObject = null;
+    }
+    event.streams[0].getTracks().forEach(track => {
+      track.onended = onStreamEnd;
+    });
   }
 
   return connection;
