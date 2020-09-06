@@ -39,7 +39,7 @@ async function createListeners() {
  * @returns {Promise<WebSocket>}
  */
 async function setupWebSocket() {
-  const socket = new WebSocket('ws://localhost:3000/?isViewer=true');
+  const socket = new WebSocket('wss://' + window.location.host + '/?isViewer=true');
 
   const socketPromise = new Promise((resolve, reject) => {
     socket.onopen = () => {

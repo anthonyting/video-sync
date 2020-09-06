@@ -54,7 +54,7 @@ function createListeners() {
  * @returns {Promise<{socket: WebSocket, peerConnection: RTCPeerConnection}>}
  */
 async function setupWebSocket() {
-  const socket = new WebSocket('ws://localhost:3000');
+  const socket = new WebSocket('wss://' + window.location.host);
 
   const socketPromise = new Promise((resolve, reject) => {
     socket.onopen = () => {
