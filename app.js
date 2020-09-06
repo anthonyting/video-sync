@@ -13,13 +13,24 @@ const wss = new WebSocket.Server({
 
 const clients = {};
 
-function createStreamerSocket(ws, clientId) {
+/**
+ * 
+ * @param {import('ws')} ws 
+ * @param {string} clientId 
+ * @param {Array} streamerMsgs 
+ */
+function createStreamerSocket(ws, clientId, streamerMsgs) {
   ws.on('message', msg => {
+    streamerMsgs.push(msg);
     for (const id of Object.keys(clients)) {
       if (id != clientId) {
         clients[id].send(msg);
       }
     }
+  });
+
+  ws.on('close', e => {
+    streamerMsgs.length = 0;
   });
 }
 
@@ -69,6 +80,7 @@ function initApp(app, server) {
 
   let idGen = 0;
   let streamerSocket = null;
+  const streamerMsgs = [];
   wss.on('connection', (ws, req) => {
     sessionParser(req, {}, () => {
       if (!req.session) {
@@ -81,6 +93,9 @@ function initApp(app, server) {
       const clientId = idGen++;
       if (isViewer && req.session.hasAccess) {
         clients[clientId] = ws;
+        for (let i = 0; i < streamerMsgs.length; i++) {
+          ws.send(streamerMsgs[i]);
+        }
         ws.on('close', () => {
           delete clients[clientId];
         });
@@ -90,11 +105,11 @@ function initApp(app, server) {
       } else if (req.session.hasStreamAccess) {
         if (!streamerSocket) {
           streamerSocket = ws;
-          createStreamerSocket(ws, clientId);
+          createStreamerSocket(ws, clientId, streamerMsgs);
         } else {
           streamerSocket.close();
           streamerSocket = ws;
-          createStreamerSocket(ws, clientId);
+          createStreamerSocket(ws, clientId, streamerMsgs);
         }
       } else {
         ws.close(1008, "Unauthorized");

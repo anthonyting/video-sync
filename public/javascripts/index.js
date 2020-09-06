@@ -3,12 +3,15 @@ const MESSAGE_TYPE = {
   CANDIDATE: 'CANDIDATE',
 }
 
+/** @type {WebSocket} */
+var socket = null;
+
 async function startCapture(displayMediaOptions) {
   /** @type {MediaStream} */
   let captureStream = null;
 
-  let socket;
   try {
+    stopCapture();
     captureStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
     const data = await setupWebSocket();
     socket = data.socket;
@@ -31,6 +34,10 @@ function stopCapture() {
 
     tracks.forEach(track => track.stop());
     localVideo.srcObject = null;
+  }
+  if (socket && socket.readyState !== 3) {
+    socket.close();
+    socket = null;
   }
 }
 
