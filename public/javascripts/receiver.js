@@ -3,50 +3,45 @@ const MESSAGE_TYPE = {
   CANDIDATE: 'CANDIDATE',
 }
 
-async function startCapture(displayMediaOptions) {
-  let captureStream = null;
-
-  try {
-    // captureStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
-    await setupWebSocket();
-    // captureStream.getTracks().forEach(track => peerConnection.addTrack(track, captureStream));
-  } catch (err) {
-    console.error("Error: ", err);
-  }
-  return captureStream;
-}
-
 async function createListeners() {
-  /** @type {WebSocket} */
-  let socket = null;
+  /**
+   * @type {{socket: WebSocket, peerConnection: RTCPeerConnection}}
+   */
+  let data = null;
   document.getElementById('start').addEventListener('click', async (event) => {
     event.preventDefault();
     try {
-      socket = await setupWebSocket();
+      data = await setupWebSocket();
     } catch (err) {
       console.error("Error: ", err);
     }
   });
   document.getElementById('stop').addEventListener('click', async (event) => {
     event.preventDefault();
-    if (socket && socket.readyState !== 3) {
-      socket.close();
+    if (data) {
+      if (data.socket && data.socket.readyState !== 3) {
+        data.socket.close();
+      }
+      if (data.peerConnection) {
+        data.peerConnection.close();
+      }
     }
   });
 }
 
 /**
- * @returns {Promise<WebSocket>}
+ * @returns {Promise<{socket: WebSocket, peerConnection: RTCPeerConnection}>}
  */
 async function setupWebSocket() {
   const socket = new WebSocket('wss://' + window.location.host + '/?isViewer=true');
 
   const socketPromise = new Promise((resolve, reject) => {
     socket.onopen = () => {
+      console.log("Connected to websocket");
       resolve(socket);
     };
     socket.onerror = error => {
-      console.log("Error connecting to websocket: ", error)
+      console.error("Error connecting to websocket: ", error)
       reject(error);
     };
   });
@@ -92,7 +87,12 @@ async function setupWebSocket() {
     }
   };
 
-  return socketPromise;
+  return socketPromise.then(() => {
+    return {
+      peerConnection,
+      socket
+    };
+  });
 }
 
 /**
@@ -103,21 +103,11 @@ function createPeerConnection() {
   /** @type {RTCConfiguration} */
   const ICE_CONFIG = {
     iceServers: [{
-        url: "stun:stun.l.google.com:19302"
-      },
-      {
-        url: "stun:stun1.l.google.com:19302"
-      },
-      {
-        url: 'stun:stun2.l.google.com:19302'
-      },
-      {
-        url: 'stun:stun3.l.google.com:19302'
-      },
-      {
-        url: 'stun:stun4.l.google.com:19302'
-      }
-    ]
+      urls: [
+        "stun:stun.l.google.com:19302",
+        "stun:stun1.l.google.com:19302"
+      ]
+    }]
   };
   const connection = new RTCPeerConnection(ICE_CONFIG);
 

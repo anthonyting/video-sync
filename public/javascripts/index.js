@@ -13,7 +13,7 @@ async function startCapture(displayMediaOptions) {
     const data = await setupWebSocket();
     socket = data.socket;
     captureStream.getTracks().forEach(track => {
-      data.peerConnection.addTrack(track, captureStream)
+      data.peerConnection.addTrack(track, captureStream);
     });
   } catch (err) {
     console.error("Error: ", err);
@@ -26,11 +26,12 @@ async function startCapture(displayMediaOptions) {
 
 function stopCapture() {
   const localVideo = document.getElementById("local-video");
+  if (localVideo && localVideo.srcObject) {
+    let tracks = localVideo.srcObject.getTracks();
 
-  let tracks = localVideo.srcObject.getTracks();
-
-  tracks.forEach(track => track.stop());
-  localVideo.srcObject = null;
+    tracks.forEach(track => track.stop());
+    localVideo.srcObject = null;
+  }
 }
 
 function createListeners() {
@@ -45,8 +46,11 @@ function createListeners() {
         if (localVideo) {
           localVideo.srcObject = data.captureStream;
         }
+        const onTrackEnd = () => {
+          localVideo.srcObject = null
+        }
         data.captureStream.getTracks().forEach(track => {
-          track.onended = localVideo.srcObject = null;
+          track.onended = onTrackEnd;
         });
       });
   });
@@ -155,7 +159,7 @@ function createPeerConnection(socket) {
   }
 
   connection.ontrack = event => {
-    const video = document.getElementById('remote-video');
+    const video = document.getElementById('local-video');
     if (!video.srcObject) {
       video.srcObject = event.streams[0];
     }
