@@ -11,27 +11,74 @@ const wss = new WebSocket.Server({
   noServer: true
 });
 
+/**
+ * @type {Object.<string, {socket: import('ws'), interval: number}}
+ */
 const clients = {};
 
 /**
  * 
  * @param {import('ws')} ws 
  * @param {string} clientId 
- * @param {Array} streamerMsgs 
  */
-function createStreamerSocket(ws, clientId, streamerMsgs) {
+function createStreamerSocket(ws, clientId) {
+  console.log("creating streamer socket");
+
   ws.on('message', msg => {
-    streamerMsgs.push(msg);
     for (const id of Object.keys(clients)) {
       if (id != clientId) {
-        clients[id].send(msg);
+        clients[id].socket.send(msg);
       }
     }
   });
 
   ws.on('close', e => {
-    streamerMsgs.length = 0;
+    console.log("closing streamer socket");
+    // allow users to control stream themselves then?
   });
+}
+
+/**
+ * @enum
+ */
+const MESSAGE_TYPES = {
+  'READY': 'ready',
+  'CONNECT': 'connect',
+  'DISCONNECT': 'disconnect'
+};
+
+class StreamerSocket {
+
+  constructor() {
+    /** @type {Array<Object>} */
+    this.queuedMessages = [];
+    /** @type {import('ws')} */
+    this.streamer = null;
+  }
+
+  setStreamer(ws) {
+    this.streamer = ws;
+    for (let i = 0; i < this.queuedMessages.length; i++) {
+      this.streamer.send(JSON.stringify(this.queuedMessages[i]));
+    }
+    this.queuedMessages.length = 0;
+  }
+
+  send(msg) {
+    if (!this.streamer) {
+      this.queuedMessages.push(msg);
+    } else {
+      this.streamer.send(JSON.stringify(msg));
+    }
+  }
+
+  isSet() {
+    return Boolean(this.streamer);
+  }
+
+  close() {
+    this.streamer.close();
+  }
 }
 
 function initApp(app, server) {
@@ -45,10 +92,12 @@ function initApp(app, server) {
   app.use(express.urlencoded({
     extended: false
   }));
-  app.use(express.static(path.join(__dirname, 'public')));
+  app.use('/abcde', express.static(path.join(__dirname, 'public')));
   app.use(sessionParser);
 
-  app.use('/', indexRouter);
+  app.set('trust proxy', 1);
+
+  app.use('/abcde', indexRouter);
 
   // catch 404 and forward to error handler
   app.use(function (req, res, next) {
@@ -79,7 +128,7 @@ function initApp(app, server) {
   });
 
   let idGen = 0;
-  let streamerSocket = null;
+  let streamerSocket = new StreamerSocket();
   const streamerMsgs = [];
   wss.on('connection', (ws, req) => {
     sessionParser(req, {}, () => {
@@ -92,28 +141,55 @@ function initApp(app, server) {
 
       const clientId = idGen++;
       if (isViewer && req.session.hasAccess) {
-        clients[clientId] = ws;
-        for (let i = 0; i < streamerMsgs.length; i++) {
-          ws.send(streamerMsgs[i]);
-        }
+        clients[clientId] = {
+          socket: ws,
+          interval: null
+        };
+        streamerSocket.send({
+          'type': MESSAGE_TYPES.CONNECT,
+          'id': clientId
+        });
         ws.on('close', () => {
+          streamerSocket.send({
+            'type': MESSAGE_TYPES.DISCONNECT,
+            'id': clientId
+          });
+          clearInterval(clients[clientId].interval);
           delete clients[clientId];
         });
         ws.on('message', msg => {
-          streamerSocket.send(msg);
+          const data = JSON.parse(msg);
+          switch (data['type']) {
+            case MESSAGE_TYPES.READY:
+              streamerSocket.send({
+                'type': MESSAGE_TYPES.READY,
+                'id': clientId
+              });
+              break;
+            default:
+              console.error("Undefined message type received: " + data['type']);
+              break;
+          }
         });
       } else if (req.session.hasStreamAccess) {
-        if (!streamerSocket) {
-          streamerSocket = ws;
+        if (!streamerSocket.isSet()) {
+          streamerSocket.setStreamer(ws);
           createStreamerSocket(ws, clientId, streamerMsgs);
         } else {
           streamerSocket.close();
-          streamerSocket = ws;
+          streamerSocket.setStreamer(ws);
           createStreamerSocket(ws, clientId, streamerMsgs);
         }
       } else {
-        ws.close(1008, "Unauthorized");
+        return ws.close(1008, "Unauthorized");
       }
+      // clients[clientId].interval = setInterval(() => {
+      //   ws.ping();
+      //   console.log("ping to: " + clientId);
+      // }, 20000)
+      // ws.on('pong', () => {
+      //   console.log("pong from: " + clientId);
+      // });
     });
   });
 }
