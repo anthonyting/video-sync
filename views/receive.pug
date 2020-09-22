@@ -1,10 +1,12 @@
 extends layout
 
+block links
+
 block scripts
-  script(src="/javascripts/receiver.js")
-  script(src="https://cdnjs.cloudflare.com/ajax/libs/webrtc-adapter/7.4.0/adapter.min.js" integrity="sha512-Q1CI1+VPudwzIg95qTgAybfooiw87q1fTbYlnjzqUPgKxUJjZMMS2I9bXQtq1GWH4WT38E0VOvHpkCS10hz49g==" crossorigin="anonymous")
+  script(src="/abcde/javascripts/stream-receiver.js")
 
 block content
-  button(id='start') Start
-  button(id='stop') Stop
-  video(id='remote-video' autoplay muted controls width='80%')
+  button(id='begin') Begin
+  video(id="video" controls preload="metadata")
+    source(src="https://anthonyting.xyz/test/video.mkv" type="video/mp4")
+    track(label="English" kind="subtitles" srclang="en" src="https://anthonyting.xyz/test/video.en.vtt" default)

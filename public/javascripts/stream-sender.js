@@ -125,7 +125,7 @@ window.onload = () => {
 
         switch (data['type']) {
           case MESSAGE_TYPES.READY:
-            console.log(id + " is connected");
+            console.log(new Date() + ": " + id + " is connected");
             let allReady = true;
             for (let i = 0; i < this.peers.length; i++) {
               if (this.peers[i].id === id) {
@@ -141,7 +141,7 @@ window.onload = () => {
             }
             break;
           case MESSAGE_TYPES.CONNECT:
-            console.log(id + " is connecting");
+            console.log(new Date() + ": " + id + " is connecting");
             for (let i = 0; i < this.peers.length; i++) {
               if (this.peers[i].id === id) {
                 this.peers[i].ready = false;
@@ -151,7 +151,7 @@ window.onload = () => {
             video.pause();
             break;
           case MESSAGE_TYPES.DISCONNECT:
-            console.log(id + " has disconnected");
+            console.log(new Date() + ": " + id + " disconnected");
             for (let i = 0; i < this.peers.length; i++) {
               if (this.peers[i].id === id) {
                 this.peers.splice(i);
