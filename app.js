@@ -197,26 +197,26 @@ class KeepAlive {
     /** @type {import('ws')} */
     this.socket = ws;
     /** @type {number} */
-    this.closeInterval = null;
+    this.closeTimeout = null;
 
     this.pingInterval = setInterval(() => {
       this.checkPing();
     }, 20000);
 
     this.socket.on('pong', () => {
-      clearInterval(this.closeInterval);
+      clearInterval(this.closeTimeout);
     });
 
     this.socket.on('close', () => {
-      clearInterval(this.closeInterval);
+      clearTimeout(this.closeTimeout);
       clearInterval(this.pingInterval);
     });
   }
 
   checkPing() {
-    clearInterval(this.closeInterval);
+    clearTimeout(this.closeTimeout);
     this.socket.ping();
-    this.closeInterval = setInterval(() => {
+    this.closeTimeout = setTimeout(() => {
       clearInterval(this.pingInterval);
       socket.close();
       console.log("Disconecting user after no response for 2 seconds");
