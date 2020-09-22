@@ -12,7 +12,7 @@ const wss = new WebSocket.Server({
 });
 
 /**
- * @type {Object.<string, {socket: import('ws'), interval: number}}
+ * @type {Object.<string, {socket: import('ws'), interval: number}} clients
  */
 const clients = {};
 
@@ -22,7 +22,9 @@ const clients = {};
  * @param {string} clientId 
  */
 function createStreamerSocket(ws, clientId) {
-  console.log("creating streamer socket");
+  console.log("creating streamer socket: " + clientId);
+
+  new KeepAlive({ws});
 
   ws.on('message', msg => {
     for (const id of Object.keys(clients)) {
@@ -142,8 +144,7 @@ function initApp(app, server) {
       const clientId = idGen++;
       if (isViewer && req.session.hasAccess) {
         clients[clientId] = {
-          socket: ws,
-          interval: null
+          socket: ws
         };
         streamerSocket.send({
           'type': MESSAGE_TYPES.CONNECT,
@@ -154,7 +155,6 @@ function initApp(app, server) {
             'type': MESSAGE_TYPES.DISCONNECT,
             'id': clientId
           });
-          clearInterval(clients[clientId].interval);
           delete clients[clientId];
         });
         ws.on('message', msg => {
@@ -183,15 +183,45 @@ function initApp(app, server) {
       } else {
         return ws.close(1008, "Unauthorized");
       }
-      // clients[clientId].interval = setInterval(() => {
-      //   ws.ping();
-      //   console.log("ping to: " + clientId);
-      // }, 20000)
-      // ws.on('pong', () => {
-      //   console.log("pong from: " + clientId);
-      // });
+
+      new KeepAlive({clients, clientId, ws});
     });
   });
+}
+
+class KeepAlive {
+
+  constructor({
+    ws = null
+  }) {
+    /** @type {import('ws')} */
+    this.socket = ws;
+    /** @type {number} */
+    this.closeInterval = null;
+
+    this.pingInterval = setInterval(() => {
+      this.checkPing();
+    }, 20000);
+
+    this.socket.on('pong', () => {
+      clearInterval(this.closeInterval);
+    });
+
+    this.socket.on('close', () => {
+      clearInterval(this.closeInterval);
+      clearInterval(this.pingInterval);
+    });
+  }
+
+  checkPing() {
+    clearInterval(this.closeInterval);
+    this.socket.ping();
+    this.closeInterval = setInterval(() => {
+      clearInterval(this.pingInterval);
+      socket.close();
+      console.log("Disconecting user after no response for 2 seconds");
+    }, 2000);
+  }
 }
 
 module.exports = {
