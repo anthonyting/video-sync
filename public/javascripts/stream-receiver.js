@@ -61,6 +61,24 @@ window.onload = () => {
     });
   }
 
+  /**
+   * 
+   * @param {number} time 
+   */
+  function seekWithoutRequest(time) {
+    if (!video.onseeking) {
+      video.onseeking = () => {};
+    }
+
+    const originalSeekingEvent = video.onseeking.bind(video);
+
+    video.onseeking = () => {};
+    video.currentTime = time;
+    video.onseeked = () => {
+      video.onseeking = originalSeekingEvent;
+    };
+  }
+
   async function setupListeners() {
     const socket = await setupWebSocket();
 
@@ -105,7 +123,7 @@ window.onload = () => {
           console.error("Request response not found: " + response['request']);
       }
 
-      video.currentTime = response['time'];
+      seekWithoutRequest(response['time']);
     }
   }
 
@@ -115,16 +133,18 @@ window.onload = () => {
       videoTime = video.currentTime;
     }
   });
-  video.addEventListener('seeking', () => {
+
+  video.onseeking = () => {
     const delta = video.currentTime - videoTime;
     if (Math.abs(delta) > 0.01) {
       alert("Seeking is disabled");
       video.currentTime = videoTime;
     }
-  });
+  };
   video.onplay = () => {
     pauseWithoutRequest();
     alert("Wait for the broadcaster to start the video");
+    video.currentTime = videoTime;
   };
 
   document.getElementById('begin').addEventListener('click', e => {
