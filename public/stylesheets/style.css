@@ -10,3 +10,11 @@ a {
 video {
   width: 80%;
 }
+
+video::-internal-media-controls-download-button {
+  display: none;
+}
+
+video::-webkit-media-controls-enclosure {
+  overflow: hidden;
+}

@@ -36,11 +36,36 @@ window.onload = () => {
 
   function onPlay() {}
 
+  function pauseWithoutRequest() {
+    if (!video.onpause) {
+      video.onpause = () => {};
+    }
+
+    const originalPauseEvent = video.onpause.bind(video);
+
+    video.onpause = () => {};
+    video.pause();
+    video.onpause = originalPauseEvent;
+  }
+
+  function playWithoutRequest() {
+    if (!video.onplay) {
+      video.onplay = () => {};
+    }
+
+    const originalPlayEvent = video.onplay.bind(video);
+
+    video.onplay = () => {};
+    video.play().then(() => {
+      video.onplay = originalPlayEvent;
+    });
+  }
+
   async function setupListeners() {
     const socket = await setupWebSocket();
 
     function onReady() {
-      video.pause();
+      pauseWithoutRequest();
       socket.send(JSON.stringify({
         'type': MESSAGE_TYPES.READY
       }));
@@ -70,10 +95,10 @@ window.onload = () => {
         case 'play':
           if (response['ready']) {
             video.onplaying = onPlay;
-            video.play();
+            playWithoutRequest();
           } else {
             video.onplaying = onReady;
-            video.play();
+            playWithoutRequest();
           }
           break;
         default:
@@ -83,6 +108,24 @@ window.onload = () => {
       video.currentTime = response['time'];
     }
   }
+
+  let videoTime = 0;
+  video.addEventListener('timeupdate', () => {
+    if (!video.seeking) {
+      videoTime = video.currentTime;
+    }
+  });
+  video.addEventListener('seeking', () => {
+    const delta = video.currentTime - videoTime;
+    if (Math.abs(delta) > 0.01) {
+      alert("Seeking is disabled");
+      video.currentTime = videoTime;
+    }
+  });
+  video.onplay = () => {
+    pauseWithoutRequest();
+    alert("Wait for the broadcaster to start the video");
+  };
 
   document.getElementById('begin').addEventListener('click', e => {
     setupListeners();
