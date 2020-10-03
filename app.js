@@ -218,9 +218,9 @@ class KeepAlive {
     this.socket.ping();
     this.closeTimeout = setTimeout(() => {
       clearInterval(this.pingInterval);
-      socket.close();
-      console.log("Disconecting user after no response for 2 seconds");
-    }, 2000);
+      this.socket.close();
+      console.warn("Disconecting user after no response for 10 seconds");
+    }, 10000);
   }
 }
 
