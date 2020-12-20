@@ -8,7 +8,7 @@ module.exports = env => /** @type {import('webpack').Configuration} */ ({
     receiver: path.resolve(__dirname, 'frontend/js/stream-receiver.ts'),
     sender: path.resolve(__dirname, 'frontend/js/stream-sender.ts')
   },
-  devtool: env.NODE_ENV === 'production' ? 'source-map' : 'eval',
+  devtool: env.NODE_ENV === 'production' ? 'source-map' : 'eval-cheap-module-source-map',
   module: {
     rules: [{
       test: /\.ts$/,

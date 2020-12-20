@@ -1,28 +1,7 @@
-export {}
-
-const MESSAGE_TYPES = {
-  READY: 'ready',
-  CONNECT: 'connect',
-  DISCONNECT: 'disconnect'
-};
-
-async function setupWebSocket(): Promise<WebSocket> {
-  const socket: WebSocket = new WebSocket(WEBSOCKET_SERVER);
-
-  const socketPromise: Promise<WebSocket> = new Promise((resolve, reject) => {
-    socket.onopen = () => {
-      console.log("Connected to websocket");
-      resolve(socket);
-    };
-    socket.onerror = error => {
-      console.error("Error connecting to websocket: ", error)
-      reject(error);
-    };
-  });
-
-  return socketPromise;
-}
-
+import {
+  setupWebSocket,
+  MESSAGE_TYPES
+} from './common'
 class PeerVideo {
   private socket: WebSocket = null;
   private video: HTMLVideoElement;
@@ -90,7 +69,7 @@ class PeerVideo {
   }
 
   async setupListeners() {
-    this.socket = await setupWebSocket();
+    this.socket = await setupWebSocket(false);
 
     // respond to a message on new connnection
     this.socket.onmessage = (e) => {

@@ -1,87 +1,55 @@
-export { }
+import {
+  setupWebSocket,
+  MESSAGE_TYPES
+} from './common'
 
-const MESSAGE_TYPES = {
-  READY: 'ready',
-  CONNECT: 'connect',
-  DISCONNECT: 'disconnect'
+enum VideoEvent {
+  play = 'play',
+  pause = 'pause',
+  seeking = 'seeking',
+  seeked = 'seeked'
 };
 
-async function setupWebSocket(): Promise<WebSocket> {
-  const socket: WebSocket = new WebSocket(WEBSOCKET_SERVER + '?isViewer=true');
+type VideoCallbacks = {
+  [name in VideoEvent]?: (this: GlobalEventHandlers, ev: Event) => any;
+};
 
-  const socketPromise: Promise<WebSocket> = new Promise((resolve, reject) => {
-    socket.onopen = () => {
-      console.log("Connected to websocket");
-      resolve(socket);
-    };
-    socket.onerror = error => {
-      console.error("Error connecting to websocket: ", error)
-      reject(error);
-    };
-  });
+class VideoController {
+  private video: HTMLVideoElement;
+  private socket: WebSocket;
+  private callbacks: VideoCallbacks = {};
+  private isReady: boolean = false;
+  constructor(video: HTMLVideoElement, socket: WebSocket) {
+    this.video = video;
 
-  return socketPromise;
-}
+    this.socket = socket;
 
-function onPlay() { }
+    this.video.play().then(this.onReady.bind(this));
 
-window.addEventListener('load', () => {
-  const video: HTMLVideoElement = <HTMLVideoElement>document.getElementById("video");
-
-  function pauseWithoutRequest() {
-    if (!video.onpause) {
-      video.onpause = () => { };
-    }
-
-    const originalPauseEvent: (this: GlobalEventHandlers, ev: Event) => any = video.onpause.bind(video);
-
-    video.onpause = () => { };
-    video.pause();
-    video.onpause = originalPauseEvent;
-  }
-
-  function playWithoutRequest() {
-    if (!video.onplay) {
-      video.onplay = () => { };
-    }
-
-    const originalPlayEvent: (this: GlobalEventHandlers, ev: Event) => any = video.onplay.bind(video);
-
-    video.onplay = () => { };
-    video.play().then(() => {
-      video.onplay = originalPlayEvent;
+    let videoTime = 0;
+    this.video.addEventListener('timeupdate', () => {
+      if (!video.seeking) {
+        videoTime = video.currentTime;
+      }
     });
-  }
 
+    this.setVideoEvent(VideoEvent.seeking, () => {
+      console.log("User attempting to seek manually");
+      const delta = video.currentTime - videoTime;
+      if (Math.abs(delta) > 0.01) {
+        alert("Seeking is disabled");
+        this.forceSeek(videoTime);
+      }
+    });
 
-  function seekWithoutRequest(time: number) {
-    if (!video.onseeking) {
-      video.onseeking = () => { };
-    }
+    this.setVideoEvent(VideoEvent.play, () => {
+      console.log("User attempting to play manually");
+      this.forcePause();
+      alert("Wait for the broadcaster to start the video");
+      this.forceSeek(videoTime);
+    });
 
-    const originalSeekingEvent = video.onseeking.bind(video);
-
-    video.onseeking = () => { };
-    video.currentTime = time;
-    video.onseeked = () => {
-      video.onseeking = originalSeekingEvent;
-    };
-  }
-
-  async function setupListeners() {
-    const socket = await setupWebSocket();
-
-    function onReady() {
-      pauseWithoutRequest();
-      socket.send(JSON.stringify({
-        'type': MESSAGE_TYPES.READY
-      }));
-    }
-
-    video.onplaying = onReady;
-    video.play();
-
-    socket.onmessage = (e) => {
+    this.socket.addEventListener('message', e => {
       const response: {
         time: number;
         timestamp: number;
@@ -89,52 +57,80 @@ window.addEventListener('load', () => {
         request: 'play' | 'pause' | 'seek';
       } = JSON.parse(e.data);
 
+      console.log("Received socket response: ", response);
+
       switch (response['request']) {
         case 'pause':
-          video.pause();
+          this.video.pause();
           break;
         case 'seek':
-          video.onplaying = onReady;
+          this.setVideoEvent(VideoEvent.play, this.onReady.bind(this));
           break;
         case 'play':
           if (response['ready']) {
-            video.onplaying = onPlay;
-            playWithoutRequest();
+            this.forcePlay();
           } else {
-            video.onplaying = onReady;
-            playWithoutRequest();
+            this.forcePause();
+            if (this.isReady) {
+              this.onReady();
+            }
           }
           break;
         default:
           console.error("Request response not found: " + response['request']);
       }
 
-      seekWithoutRequest(response['time']);
-    }
+      this.forceSeek(response['time']);
+    });
   }
 
-  let videoTime = 0;
-  video.addEventListener('timeupdate', () => {
-    if (!video.seeking) {
-      videoTime = video.currentTime;
-    }
-  });
+  private onReady() {
+    console.log("Playback ready");
+    this.forcePause();
+    this.isReady = true;
+    this.socket.send(JSON.stringify({
+      'type': MESSAGE_TYPES.READY
+    }));
+  }
 
-  video.onseeking = () => {
-    const delta = video.currentTime - videoTime;
-    if (Math.abs(delta) > 0.01) {
-      alert("Seeking is disabled");
-      video.currentTime = videoTime;
-    }
-  };
-  video.onplay = () => {
-    pauseWithoutRequest();
-    alert("Wait for the broadcaster to start the video");
-    video.currentTime = videoTime;
-  };
+  private setVideoEvent(type: VideoEvent, callback: (this: GlobalEventHandlers, ev: Event) => any) {
+    this.video.removeEventListener(type, this.callbacks[type]);
+    this.callbacks[type] = callback;
+    this.video.addEventListener(type, this.callbacks[type]);
+  }
 
-  (<HTMLButtonElement>document.getElementById('begin')).addEventListener('click', e => {
-    setupListeners();
-    (<HTMLButtonElement>e.target).style.display = "none";
+  private forcePause() {
+    console.log("Forcing pause");
+    this.video.removeEventListener(VideoEvent.pause, this.callbacks.pause);
+    this.video.pause();
+    this.video.addEventListener(VideoEvent.pause, this.callbacks.pause);
+  }
+
+  private forcePlay() {
+    console.log("Forcing play");
+    this.video.removeEventListener(VideoEvent.play, this.callbacks.play);
+    this.video.play().then(() => {
+      this.video.addEventListener(VideoEvent.play, this.callbacks.play);
+    });
+  }
+
+  private forceSeek(time: number) {
+    console.log("Forcing seek to: " + time);
+    this.video.removeEventListener(VideoEvent.seeking, this.callbacks.seeking);
+    this.video.currentTime = time;
+    this.setVideoEvent(VideoEvent.seeked, () => {
+      this.video.addEventListener(VideoEvent.seeking, this.callbacks.seeking);
+    });
+  }
+}
+
+window.addEventListener('load', () => {
+  const video: HTMLVideoElement = <HTMLVideoElement>document.getElementById("video");
+
+  setupWebSocket(true).then(socket => {
+    (<HTMLButtonElement>document.getElementById('begin')).addEventListener('click', e => {
+      new VideoController(video, socket);
+      (<HTMLButtonElement>e.target).style.display = "none";
+    });
   });
 });
