@@ -7,7 +7,7 @@ const MESSAGE_TYPES = {
 };
 
 async function setupWebSocket(): Promise<WebSocket> {
-  const socket: WebSocket = new WebSocket('wss://' + window.location.host + "/abcde?isViewer=true");
+  const socket: WebSocket = new WebSocket(WEBSOCKET_SERVER + '?isViewer=true');
 
   const socketPromise: Promise<WebSocket> = new Promise((resolve, reject) => {
     socket.onopen = () => {

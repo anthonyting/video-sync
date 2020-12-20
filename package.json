@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "build": "webpack --config=webpack.config.js"
+    "build": "webpack --config=webpack.config.js --env NODE_ENV=development",
+    "build-prod": "webpack --config=webpack.config.js --env NODE_ENV=production"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",
