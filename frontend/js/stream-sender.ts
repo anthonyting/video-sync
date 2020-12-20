@@ -126,7 +126,7 @@ class PeerVideo {
               break;
             }
           }
-          video.pause();
+          this.video.pause();
           break;
         case MESSAGE_TYPES.DISCONNECT:
           console.log(new Date() + ": " + id + " disconnected");
