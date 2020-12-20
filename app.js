@@ -22,9 +22,11 @@ const clients = {};
  * @param {string} clientId 
  */
 function createStreamerSocket(ws, clientId) {
-  console.log("creating streamer socket: " + clientId);
+  console.log("Creating streamer socket: " + clientId);
 
-  new KeepAlive({ws});
+  new KeepAlive({
+    ws
+  });
 
   ws.on('message', msg => {
     for (const id of Object.keys(clients)) {
@@ -35,7 +37,7 @@ function createStreamerSocket(ws, clientId) {
   });
 
   ws.on('close', e => {
-    console.log("closing streamer socket");
+    console.log("Closing streamer socket");
     // allow users to control stream themselves then?
   });
 }
@@ -141,8 +143,12 @@ function initApp(app, server) {
       const queryParams = new url.URLSearchParams(req._parsedUrl.search);
       const isViewer = Boolean(queryParams.get('isViewer'));
 
-      const clientId = idGen++;
+      const sessionId = req.session.clientId;
+      const clientId = sessionId || idGen++;
+      req.session.clientId = clientId;
       if (isViewer && req.session.hasAccess) {
+        console.log(sessionId ? `Old viewer reconnected: ${clientId}` : `New viewer connected: ${clientId}`);
+
         clients[clientId] = {
           socket: ws
         };
@@ -150,12 +156,16 @@ function initApp(app, server) {
           'type': MESSAGE_TYPES.CONNECT,
           'id': clientId
         });
-        ws.on('close', () => {
+        ws.on('close', (code, reason) => {
           streamerSocket.send({
             'type': MESSAGE_TYPES.DISCONNECT,
             'id': clientId
           });
-          delete clients[clientId];
+          if (code === 1006) {
+            console.log(`${clientId} disconnected abrubtly: ` + reason);
+          } else {
+            delete clients[clientId];
+          }
         });
         ws.on('message', msg => {
           const data = JSON.parse(msg);
@@ -184,7 +194,11 @@ function initApp(app, server) {
         return ws.close(1008, "Unauthorized");
       }
 
-      new KeepAlive({clients, clientId, ws});
+      new KeepAlive({
+        clients,
+        clientId,
+        ws
+      });
     });
   });
 }
