@@ -1,4 +1,9 @@
+html {
+  height: 100%;
+}
+
 body {
+  height: 100%;
   padding: 50px;
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
 }
@@ -8,7 +13,11 @@ a {
 }
 
 video {
-  width: 80%;
+  width: 100%;
+}
+
+video:focus {
+  outline: none;
 }
 
 video::-internal-media-controls-download-button {
@@ -17,4 +26,11 @@ video::-internal-media-controls-download-button {
 
 video::-webkit-media-controls-enclosure {
   overflow: hidden;
+}
+
+main.container {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
 }

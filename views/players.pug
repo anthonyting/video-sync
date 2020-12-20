@@ -1,0 +1,8 @@
+extends layout
+
+block content
+  main.container
+    video#video.p-1(controls preload="metadata" controlsList="nodownload")
+      source(src="https://anthonyting.xyz/test/video.mkv" type="video/mp4")
+      track(label="English" kind="subtitles" srclang="en" src="https://anthonyting.xyz/test/video.en.vtt" default)
+    button.w-100.btn.btn-primary#begin Begin
