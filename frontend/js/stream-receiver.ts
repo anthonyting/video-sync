@@ -1,4 +1,4 @@
-export {}
+export { }
 
 const MESSAGE_TYPES = {
   READY: 'ready',

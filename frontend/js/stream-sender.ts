@@ -68,7 +68,7 @@ class PeerVideo {
     this.socket.send(this.getStringifiedVideoData(false, 'play'));
   }
 
-  async pauseWithoutRequest() {
+  async pauseWithoutRequest(): Promise<number> {
     return new Promise(resolve => {
       this.notifyPause = false;
       this.video.pause();
