@@ -1,86 +1,28 @@
 import {
   setupWebSocket,
-  MESSAGE_TYPES
+  MESSAGE_TYPES,
+  VideoController,
+  VideoEvent
 } from './common'
-class PeerVideo {
-  private socket: WebSocket = null;
-  private video: HTMLVideoElement;
-  private peers: { id: string, ready: boolean }[] = [];
-  private notifyPause: boolean = true;
-  private notifyPlay: boolean = true;
-  private pauseResolver: () => void = null;
-  private playResolver: () => void = null;
-  private played: Promise<void> = new Promise(resolve => this.playResolver = resolve);
-  private paused: Promise<void> = new Promise(resolve => this.pauseResolver = resolve);
-  constructor(video: HTMLVideoElement) {
-    this.video = video;
-  }
 
-  getStringifiedVideoData(ready: boolean = false, request: 'play' | 'pause' | 'seek') {
-    return JSON.stringify(this.getVideoData(ready, request));
-  }
+interface Peer {
+  id: string,
+  ready: boolean
+};
 
-  getVideoData(ready: boolean, request: 'play' | 'pause' | 'seek') {
-    return {
-      'time': this.video.currentTime,
-      'timestamp': Math.floor(Date.now() / 1000),
-      'request': request,
-      'ready': ready
-    };
-  }
-
-  resetPauseEventPromise() {
-    this.pauseResolver = null;
-    this.paused = new Promise(resolve => this.pauseResolver = resolve);
-  }
-
-  resetPlayEventPromise() {
-    this.playResolver = null;
-    this.played = new Promise(resolve => this.playResolver = resolve);
-  }
-
-  onPause() {
-    this.socket.send(this.getStringifiedVideoData(false, 'pause'));
-  }
-
-  onPlay() {
-    this.socket.send(this.getStringifiedVideoData(false, 'play'));
-  }
-
-  async pauseWithoutRequest(): Promise<number> {
-    return new Promise(resolve => {
-      this.notifyPause = false;
-      this.video.pause();
-      this.paused.then(() => {
-        this.notifyPause = true;
-        this.resetPauseEventPromise();
-        resolve(Date.now());
-      });
-    });
-  }
-
-  playWithoutRequest() {
-    this.notifyPlay = false;
-    this.video.play();
-    this.played.then(() => {
-      this.notifyPlay = true;
-      this.resetPlayEventPromise();
-    });
-  }
-
-  async setupListeners() {
-    this.socket = await setupWebSocket(false);
-
-    // respond to a message on new connnection
-    this.socket.onmessage = (e) => {
+class VideoSenderController extends VideoController {
+  private peers: Peer[] = [];
+  constructor(video: HTMLVideoElement, socket: WebSocket) {
+    super(video, socket);
+    this.socket.addEventListener('message', e => {
       const data: {
         type: 'ready' | 'connect';
-        id: string; data: object;
+        id: string;
+        data: object;
       } = JSON.parse(e.data);
 
       const id = data['id'];
-
-      switch (data['type']) {
+      switch (data.type) {
         case MESSAGE_TYPES.READY:
           console.log(new Date() + ": " + id + " is connected");
           let allReady = true;
@@ -93,7 +35,7 @@ class PeerVideo {
             }
           }
           if (allReady) {
-            this.playWithoutRequest();
+            this.forcePlay();
             this.socket.send(this.getStringifiedVideoData(true, 'play'));
           }
           break;
@@ -120,38 +62,45 @@ class PeerVideo {
           console.error("Undefined message type detected: " + data['type']);
           return;
       }
-    }
+    });
 
-    this.video.onpause = (e) => {
-      if (this.notifyPause) {
-        this.socket.send(this.getStringifiedVideoData(false, 'pause'));
-      }
-      this.pauseResolver();
-      this.resetPauseEventPromise();
-    }
+    this.setVideoEvent(VideoEvent.pause, () => {
+      this.socket.send(this.getStringifiedVideoData(false, VideoEvent.pause));
+    });
 
-    this.video.onplaying = async (e) => {
-      if (this.notifyPlay) {
-        e.preventDefault();
-        await this.pauseWithoutRequest();
-        this.socket.send(this.getStringifiedVideoData(false, 'play'));
-      }
-      this.playResolver();
-      this.resetPlayEventPromise();
-    }
+    this.setVideoEvent(VideoEvent.play, () => {
+      this.forcePause();
+      this.socket.send(this.getStringifiedVideoData(false, VideoEvent.play));
+    });
 
-    this.video.onseeked = (e) => {
-      e.preventDefault();
-      this.pauseWithoutRequest();
+    this.setVideoEvent(VideoEvent.seeked, () => {
+      this.forcePause();
       this.socket.send(this.getStringifiedVideoData(false, 'seek'));
-    }
+    });
+  }
+
+  getStringifiedVideoData(ready: boolean = false, request: 'play' | 'pause' | 'seek') {
+    return JSON.stringify(this.getVideoData(ready, request));
+  }
+
+  getVideoData(ready: boolean, request: 'play' | 'pause' | 'seek') {
+    return {
+      time: this.video.currentTime,
+      timestamp: Math.floor(Date.now() / 1000),
+      request: request,
+      ready: ready
+    };
   }
 }
 
 window.addEventListener('load', () => {
   const video: HTMLVideoElement = <HTMLVideoElement>document.getElementById("video");
-  document.getElementById('begin').addEventListener('click', e => {
-    new PeerVideo(video).setupListeners();
-    (<HTMLButtonElement>e.target).style.display = "none";
-  });
+  setupWebSocket(false)
+    .then(socket => {
+      (<HTMLButtonElement>document.getElementById('begin')).addEventListener('click', e => {
+        new VideoSenderController(video, socket);
+        (<HTMLButtonElement>e.target).style.display = "none";
+      });
+    })
+    .catch(console.error);
 });
