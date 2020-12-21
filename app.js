@@ -19,6 +19,22 @@ const clients = {};
 /**
  * 
  * @param {import('ws')} ws 
+ * @param {number} receivedAt
+ * @param {number} clientTime
+ */
+function sendTimeDifference(ws, receivedAt, clientTime) {
+  ws.send(JSON.stringify({
+    type: MessageTypes.TIME,
+    data: {
+      timeDelta: receivedAt - clientTime
+    },
+    timestamp: Date.now()
+  }));
+}
+
+/**
+ * 
+ * @param {import('ws')} ws 
  * @param {string} clientId 
  */
 function createStreamerSocket(ws, clientId) {
@@ -29,6 +45,8 @@ function createStreamerSocket(ws, clientId) {
   });
 
   ws.on('message', msg => {
+    const now = Date.now();
+
     let parsed;
     try {
       parsed = JSON.parse(msg);
@@ -38,15 +56,18 @@ function createStreamerSocket(ws, clientId) {
     }
 
     switch (parsed.type) {
-      case StreamerMessages.DISPATCH:
+      case MessageTypes.DISPATCH:
         for (const id of Object.keys(clients)) {
           if (id != clientId) {
             clients[id].socket.send(msg);
           }
         }
         break;
-      case StreamerMessages.RESPOND:
+      case MessageTypes.RESPOND:
         clients[parsed.client].socket.send(msg);
+        break;
+      case MessageTypes.TIME:
+        sendTimeDifference(ws, now, parsed.timestamp);
         break;
       default:
         console.warn(`Missing streamer message request type: ${parsed.request}`);
@@ -65,15 +86,10 @@ function createStreamerSocket(ws, clientId) {
 const MessageTypes = {
   RECONNECT: 'reconnect',
   CONNECT: 'connect',
-  DISCONNECT: 'disconnect'
-};
-
-/**
- * @enum
- */
-const StreamerMessages = {
+  DISCONNECT: 'disconnect',
   DISPATCH: 'dispatch',
-  RESPOND: 'respond'
+  RESPOND: 'respond',
+  TIME: 'time',
 };
 
 class StreamerSocket {
@@ -193,16 +209,20 @@ function initApp(app, server) {
           }
         });
         ws.on('message', msg => {
-          const data = JSON.parse(msg);
-          switch (data['type']) {
+          const now = Date.now();
+          const parsed = JSON.parse(msg);
+          switch (parsed.type) {
             case MessageTypes.RECONNECT:
               streamerSocket.send({
                 type: MessageTypes.RECONNECT,
                 id: clientId
               });
               break;
+            case MessageTypes.TIME:
+              sendTimeDifference(ws, now, parsed.timestamp);
+              break;
             default:
-              console.error("Undefined message type received: " + data['type']);
+              console.error("Undefined message type received: " + parsed.type);
               break;
           }
         });

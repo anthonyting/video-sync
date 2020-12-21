@@ -2,7 +2,7 @@ import {
   setupWebSocket,
   MessageTypes,
   VideoController,
-  VideoEvent
+  VideoEvent,
 } from './common'
 
 interface Peer {
@@ -10,31 +10,28 @@ interface Peer {
   ready: boolean
 };
 
-const enum StreamerMessages {
-  DISPATCH = 'dispatch',
-  RESPOND = 'respond'
-};
-
 class VideoSenderController extends VideoController {
   private peers: Peer[] = [];
-  constructor(video: HTMLVideoElement, socket: WebSocket) {
-    super(video, socket);
+  constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement) {
+    super(video, socket, toast);
     this.socket.addEventListener('message', e => {
-      const data: {
+      const response: {
         type: MessageTypes;
         id: string;
-        data: object;
+        timestamp: number;
+        data: any;
       } = JSON.parse(e.data);
 
-      const id = data['id'];
-      switch (data.type) {
-        case MessageTypes.RECONNECT:
+      const id = response.id;
+      switch (response.type) {
+        case MessageTypes.RECONNECT: {
           console.log(new Date() + ": " + id + " is connected");
           const eventToSend: VideoEvent = this.video.paused ? VideoEvent.pause : VideoEvent.play;
-          const response: any = this.getVideoData(eventToSend, StreamerMessages.RESPOND);
-          response.client = id;
-          this.socket.send(JSON.stringify(response));
+          const videoData: any = this.getVideoData(eventToSend, MessageTypes.RESPOND);
+          videoData.client = id;
+          this.socket.send(JSON.stringify(videoData));
           break;
+        }
         case MessageTypes.CONNECT:
           console.log(new Date() + ": " + id + " is connecting");
           for (let i = 0; i < this.peers.length; i++) {
@@ -54,8 +51,11 @@ class VideoSenderController extends VideoController {
             }
           }
           break;
+        case MessageTypes.TIME:
+          this.serverTimeDelta = response.data.timeDelta;
+          break;
         default:
-          console.error("Undefined message type detected: " + data['type']);
+          console.error("Undefined message type detected: " + response['type']);
           return;
       }
     });
@@ -72,16 +72,19 @@ class VideoSenderController extends VideoController {
       this.forcePause();
       this.socket.send(this.getDispatchData(VideoEvent.seeking));
     });
+
+    this.syncTime();
   }
 
   private getDispatchData(request: VideoEvent) {
-    return JSON.stringify(this.getVideoData(request, StreamerMessages.DISPATCH));
+    return JSON.stringify(this.getVideoData(request, MessageTypes.DISPATCH));
   }
 
-  private getVideoData(request: VideoEvent, type: StreamerMessages) {
+  private getVideoData(request: VideoEvent, type: MessageTypes) {
     return {
       type: type,
       time: this.video.currentTime,
+      timestamp: Date.now() + this.serverTimeDelta,
       request: request
     };
   }
@@ -92,7 +95,8 @@ window.addEventListener('load', () => {
   setupWebSocket(false)
     .then(socket => {
       (<HTMLButtonElement>document.getElementById('begin')).addEventListener('click', e => {
-        new VideoSenderController(video, socket);
+        const toast = document.getElementById('toast');
+        new VideoSenderController(video, socket, toast);
         (<HTMLButtonElement>e.target).style.display = "none";
       });
     })

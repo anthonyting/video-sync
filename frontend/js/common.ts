@@ -2,14 +2,14 @@ export async function setupWebSocket(isViewer: boolean): Promise<WebSocket> {
   const socket: WebSocket = new WebSocket(WEBSOCKET_SERVER + (isViewer ? '?isViewer=true' : ''));
 
   const socketPromise: Promise<WebSocket> = new Promise((resolve, reject) => {
-    socket.onopen = () => {
+    socket.addEventListener('open', () => {
       console.log("Connected to websocket");
       resolve(socket);
-    };
-    socket.onerror = error => {
+    });
+    socket.addEventListener('error', error => {
       console.error("Error connecting to websocket: ", error)
       reject(error);
-    };
+    });
   });
 
   return socketPromise;
@@ -18,7 +18,11 @@ export async function setupWebSocket(isViewer: boolean): Promise<WebSocket> {
 export enum MessageTypes {
   RECONNECT = 'reconnect',
   CONNECT = 'connect',
-  DISCONNECT = 'disconnect'
+  DISCONNECT = 'disconnect',
+  REQUEST = 'request',
+  DISPATCH = 'dispatch',
+  RESPOND = 'respond',
+  TIME = 'time',
 };
 
 export enum VideoEvent {
@@ -37,9 +41,38 @@ export abstract class VideoController {
   protected video: HTMLVideoElement;
   protected socket: WebSocket;
   protected callbacks: VideoCallbacks = {};
-  constructor(video: HTMLVideoElement, socket: WebSocket) {
+  /** Time delta between server and host in ms */
+  protected serverTimeDelta: number = null;
+  private toast: Bootstrap.Toast;
+  private toastElement: HTMLElement;
+  constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement) {
     this.video = video;
     this.socket = socket;
+    this.toastElement = toast;
+    // @ts-ignore bootstrap types not up to date
+    this.toast = new Bootstrap.Toast(toast, {
+      delay: 1000
+    });
+  }
+
+  protected showNotification(message: string) {
+    // @ts-ignore
+    this.toast.show();
+    this.toastElement.querySelector('.toast-body').textContent = message;
+  }
+
+  protected syncTime(): void {
+    this.socket.send(JSON.stringify({
+      type: MessageTypes.TIME,
+      timestamp: Date.now()
+    }));
+  }
+
+  protected getRealTime(): number {
+    if (this.serverTimeDelta === null) {
+      throw new TypeError("Server time delta not yet initialized");
+    }
+    return Date.now() + this.serverTimeDelta;
   }
 
   protected onReconnect() {

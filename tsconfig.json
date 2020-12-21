@@ -4,6 +4,7 @@
     "noImplicitAny": true,
     "module": "es6",
     "target": "esnext",
-    "sourceMap": true
+    "sourceMap": true,
+    "allowUmdGlobalAccess": true,
   }
 }

@@ -2,12 +2,12 @@ import {
   setupWebSocket,
   MessageTypes,
   VideoController,
-  VideoEvent
+  VideoEvent,
 } from './common'
 
 class VideoReceiverController extends VideoController {
-  constructor(video: HTMLVideoElement, socket: WebSocket) {
-    super(video, socket);
+  constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement) {
+    super(video, socket, toast);
 
     let videoTime = 0;
     this.video.addEventListener('timeupdate', () => {
@@ -20,7 +20,7 @@ class VideoReceiverController extends VideoController {
       console.log("User attempting to seek manually");
       const delta = video.currentTime - videoTime;
       if (Math.abs(delta) > 0.01) {
-        alert("Seeking is disabled");
+        this.showNotification("Seeking is disabled");
         this.forceSeek(videoTime);
       }
     });
@@ -28,7 +28,7 @@ class VideoReceiverController extends VideoController {
     this.setVideoEvent(VideoEvent.play, () => {
       console.log("User attempting to play manually");
       this.forcePause();
-      alert("Wait for the broadcaster to start the video");
+      this.showNotification("Wait for the broadcaster to start the video");
       this.forceSeek(videoTime);
     });
 
@@ -46,32 +46,51 @@ class VideoReceiverController extends VideoController {
         time: number;
         timestamp: number;
         request: VideoEvent;
+        type: MessageTypes;
+        data: any
       } = JSON.parse(e.data);
 
       console.log("Received socket response: ", response);
 
-      const startTime: number = Date.now();
       new Promise<void>(resolve => {
-        switch (response.request) {
-          case VideoEvent.pause:
-            // fall through
-          case VideoEvent.seeking:
-            this.forcePause();
-            resolve();
+        switch (response.type) {
+          case MessageTypes.RESPOND:
+          // fall through
+          case MessageTypes.DISPATCH:
+            switch (response.request) {
+              case VideoEvent.pause:
+              // fall through
+              case VideoEvent.seeking:
+                this.forcePause();
+                resolve();
+                break;
+              case VideoEvent.play:
+                this.forcePlay().then(resolve);
+                break;
+              default:
+                console.error(`Request response not found: ${response.request}`);
+                resolve();
+            }
             break;
-          case VideoEvent.play:
-            this.forcePlay().then(resolve);
+          case MessageTypes.TIME:
+            this.serverTimeDelta = response.data.timeDelta;
             break;
           default:
-            console.error(`Request response not found: ${response.request}`);
-            resolve();
+            console.error(`Undefined message type detected: ${response.type}`);
+            return;
         }
       }).then(() => {
-        const difference: number = Date.now() - startTime;
+        const difference: number = this.getRealTime() - response.timestamp;
         console.log(`Time adjustment: ${difference}ms`);
-        this.forceSeek(response['time'] + (difference / 1000));
-      });
+        if (response['time'] === 0) {
+          this.forceSeek(response['time']);
+        } else {
+          this.forceSeek(response['time'] + (difference / 1000));
+        }
+      }).catch(console.error);
     });
+
+    this.syncTime();
   }
 
   protected onReconnect() {
@@ -89,7 +108,8 @@ window.addEventListener('load', () => {
   setupWebSocket(true)
     .then(socket => {
       (<HTMLButtonElement>document.getElementById('begin')).addEventListener('click', e => {
-        new VideoReceiverController(video, socket);
+        const toast = document.getElementById('toast');
+        new VideoReceiverController(video, socket, toast);
         (<HTMLButtonElement>e.target).style.display = "none";
       });
     })
