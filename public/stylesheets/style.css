@@ -27,10 +27,3 @@ video::-internal-media-controls-download-button {
 video::-webkit-media-controls-enclosure {
   overflow: hidden;
 }
-
-main.container {
-  display: flex;
-  justify-content: center;
-  flex-direction: column;
-  align-items: center;
-}
