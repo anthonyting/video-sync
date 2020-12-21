@@ -10,6 +10,11 @@ interface Peer {
   ready: boolean
 };
 
+const enum StreamerMessages {
+  DISPATCH = 'dispatch',
+  RESPOND = 'respond'
+};
+
 class VideoSenderController extends VideoController {
   private peers: Peer[] = [];
   constructor(video: HTMLVideoElement, socket: WebSocket) {
@@ -23,21 +28,12 @@ class VideoSenderController extends VideoController {
 
       const id = data['id'];
       switch (data.type) {
-        case MessageTypes.READY:
+        case MessageTypes.RECONNECT:
           console.log(new Date() + ": " + id + " is connected");
-          let allReady = true;
-          for (let i = 0; i < this.peers.length; i++) {
-            if (this.peers[i].id === id) {
-              this.peers[i].ready = true;
-              allReady = allReady && i === this.peers.length - 1;
-            } else {
-              allReady = false;
-            }
-          }
-          if (allReady) {
-            this.forcePlay();
-            this.socket.send(this.getStringifiedVideoData(true, 'play'));
-          }
+          const eventToSend: VideoEvent = this.video.paused ? VideoEvent.pause : VideoEvent.play;
+          const response: any = this.getVideoData(eventToSend, StreamerMessages.RESPOND);
+          response.client = id;
+          this.socket.send(JSON.stringify(response));
           break;
         case MessageTypes.CONNECT:
           console.log(new Date() + ": " + id + " is connecting");
@@ -47,7 +43,7 @@ class VideoSenderController extends VideoController {
               break;
             }
           }
-          this.video.pause();
+          // this.video.pause();
           break;
         case MessageTypes.DISCONNECT:
           console.log(new Date() + ": " + id + " disconnected");
@@ -65,30 +61,28 @@ class VideoSenderController extends VideoController {
     });
 
     this.setVideoEvent(VideoEvent.pause, () => {
-      this.socket.send(this.getStringifiedVideoData(false, VideoEvent.pause));
+      this.socket.send(this.getDispatchData(VideoEvent.pause));
     });
 
     this.setVideoEvent(VideoEvent.play, () => {
-      this.forcePause();
-      this.socket.send(this.getStringifiedVideoData(false, VideoEvent.play));
+      this.socket.send(this.getDispatchData(VideoEvent.play));
     });
 
     this.setVideoEvent(VideoEvent.seeked, () => {
       this.forcePause();
-      this.socket.send(this.getStringifiedVideoData(false, 'seek'));
+      this.socket.send(this.getDispatchData(VideoEvent.seeking));
     });
   }
 
-  private getStringifiedVideoData(ready: boolean = false, request: 'play' | 'pause' | 'seek') {
-    return JSON.stringify(this.getVideoData(ready, request));
+  private getDispatchData(request: VideoEvent) {
+    return JSON.stringify(this.getVideoData(request, StreamerMessages.DISPATCH));
   }
 
-  private getVideoData(ready: boolean, request: 'play' | 'pause' | 'seek') {
+  private getVideoData(request: VideoEvent, type: StreamerMessages) {
     return {
+      type: type,
       time: this.video.currentTime,
-      timestamp: Math.floor(Date.now() / 1000),
-      request: request,
-      ready: ready
+      request: request
     };
   }
 }

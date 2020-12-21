@@ -29,10 +29,27 @@ function createStreamerSocket(ws, clientId) {
   });
 
   ws.on('message', msg => {
-    for (const id of Object.keys(clients)) {
-      if (id != clientId) {
-        clients[id].socket.send(msg);
-      }
+    let parsed;
+    try {
+      parsed = JSON.parse(msg);
+    } catch (err) {
+      console.warn("Error parsing streamer message: ", err);
+      return;
+    }
+
+    switch (parsed.type) {
+      case StreamerMessages.DISPATCH:
+        for (const id of Object.keys(clients)) {
+          if (id != clientId) {
+            clients[id].socket.send(msg);
+          }
+        }
+        break;
+      case StreamerMessages.RESPOND:
+        clients[parsed.client].socket.send(msg);
+        break;
+      default:
+        console.warn(`Missing streamer message request type: ${parsed.request}`);
     }
   });
 
@@ -45,10 +62,18 @@ function createStreamerSocket(ws, clientId) {
 /**
  * @enum
  */
-const MESSAGE_TYPES = {
-  'READY': 'ready',
-  'CONNECT': 'connect',
-  'DISCONNECT': 'disconnect'
+const MessageTypes = {
+  RECONNECT: 'reconnect',
+  CONNECT: 'connect',
+  DISCONNECT: 'disconnect'
+};
+
+/**
+ * @enum
+ */
+const StreamerMessages = {
+  DISPATCH: 'dispatch',
+  RESPOND: 'respond'
 };
 
 class StreamerSocket {
@@ -153,13 +178,13 @@ function initApp(app, server) {
           socket: ws
         };
         streamerSocket.send({
-          'type': MESSAGE_TYPES.CONNECT,
-          'id': clientId
+          type: MessageTypes.CONNECT,
+          id: clientId
         });
         ws.on('close', (code, reason) => {
           streamerSocket.send({
-            'type': MESSAGE_TYPES.DISCONNECT,
-            'id': clientId
+            type: MessageTypes.DISCONNECT,
+            id: clientId
           });
           if (code === 1006) {
             console.log(`${clientId} disconnected abrubtly: ` + reason);
@@ -170,10 +195,10 @@ function initApp(app, server) {
         ws.on('message', msg => {
           const data = JSON.parse(msg);
           switch (data['type']) {
-            case MESSAGE_TYPES.READY:
+            case MessageTypes.RECONNECT:
               streamerSocket.send({
-                'type': MESSAGE_TYPES.READY,
-                'id': clientId
+                type: MessageTypes.RECONNECT,
+                id: clientId
               });
               break;
             default:

@@ -16,7 +16,7 @@ export async function setupWebSocket(isViewer: boolean): Promise<WebSocket> {
 }
 
 export enum MessageTypes {
-  READY = 'ready',
+  RECONNECT = 'reconnect',
   CONNECT = 'connect',
   DISCONNECT = 'disconnect'
 };
@@ -42,8 +42,8 @@ export abstract class VideoController {
     this.socket = socket;
   }
 
-  protected onReady() {
-    console.log("Playback ready");
+  protected onReconnect() {
+    console.log("Playback reconnected");
   }
 
   protected setVideoEvent(type: VideoEvent, callback: (ev: Event) => any) {
@@ -56,7 +56,12 @@ export abstract class VideoController {
     console.log("Forcing pause");
     this.video.removeEventListener(VideoEvent.pause, this.callbacks.pause);
     this.video.pause();
-    this.video.addEventListener(VideoEvent.pause, this.callbacks.pause);
+    setTimeout(() => {
+      // https://html.spec.whatwg.org/multipage/media.html#event-media-pause
+      // If not in a setTimeout(), addEventListener fires even though pause() returns before
+      // (tested in Firefox and Chrome). Seems like they implement the spec incorrectly?
+      this.video.addEventListener(VideoEvent.pause, this.callbacks.pause);
+    }, 0);
   }
 
   protected forcePlay(): Promise<void> {
