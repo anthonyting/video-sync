@@ -15,10 +15,10 @@ export async function setupWebSocket(isViewer: boolean): Promise<WebSocket> {
   return socketPromise;
 }
 
-export const MESSAGE_TYPES = {
-  READY: 'ready',
-  CONNECT: 'connect',
-  DISCONNECT: 'disconnect'
+export enum MessageTypes {
+  READY = 'ready',
+  CONNECT = 'connect',
+  DISCONNECT = 'disconnect'
 };
 
 export enum VideoEvent {

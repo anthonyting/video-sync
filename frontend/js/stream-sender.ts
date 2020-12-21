@@ -1,6 +1,6 @@
 import {
   setupWebSocket,
-  MESSAGE_TYPES,
+  MessageTypes,
   VideoController,
   VideoEvent
 } from './common'
@@ -16,14 +16,14 @@ class VideoSenderController extends VideoController {
     super(video, socket);
     this.socket.addEventListener('message', e => {
       const data: {
-        type: 'ready' | 'connect';
+        type: MessageTypes;
         id: string;
         data: object;
       } = JSON.parse(e.data);
 
       const id = data['id'];
       switch (data.type) {
-        case MESSAGE_TYPES.READY:
+        case MessageTypes.READY:
           console.log(new Date() + ": " + id + " is connected");
           let allReady = true;
           for (let i = 0; i < this.peers.length; i++) {
@@ -39,7 +39,7 @@ class VideoSenderController extends VideoController {
             this.socket.send(this.getStringifiedVideoData(true, 'play'));
           }
           break;
-        case MESSAGE_TYPES.CONNECT:
+        case MessageTypes.CONNECT:
           console.log(new Date() + ": " + id + " is connecting");
           for (let i = 0; i < this.peers.length; i++) {
             if (this.peers[i].id === id) {
@@ -49,7 +49,7 @@ class VideoSenderController extends VideoController {
           }
           this.video.pause();
           break;
-        case MESSAGE_TYPES.DISCONNECT:
+        case MessageTypes.DISCONNECT:
           console.log(new Date() + ": " + id + " disconnected");
           for (let i = 0; i < this.peers.length; i++) {
             if (this.peers[i].id === id) {
@@ -79,11 +79,11 @@ class VideoSenderController extends VideoController {
     });
   }
 
-  getStringifiedVideoData(ready: boolean = false, request: 'play' | 'pause' | 'seek') {
+  private getStringifiedVideoData(ready: boolean = false, request: 'play' | 'pause' | 'seek') {
     return JSON.stringify(this.getVideoData(ready, request));
   }
 
-  getVideoData(ready: boolean, request: 'play' | 'pause' | 'seek') {
+  private getVideoData(ready: boolean, request: 'play' | 'pause' | 'seek') {
     return {
       time: this.video.currentTime,
       timestamp: Math.floor(Date.now() / 1000),

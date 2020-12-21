@@ -1,6 +1,6 @@
 import {
   setupWebSocket,
-  MESSAGE_TYPES,
+  MessageTypes,
   VideoController,
   VideoEvent
 } from './common'
@@ -82,7 +82,7 @@ class VideoReceiverController extends VideoController {
     this.forcePause();
     this.isReady = true;
     this.socket.send(JSON.stringify({
-      'type': MESSAGE_TYPES.READY
+      'type': MessageTypes.READY
     }));
   }
 }
