@@ -42,6 +42,8 @@ class VideoReceiverController extends VideoController {
     this.video.play().then(this.onReconnect.bind(this));
 
     this.socket.addEventListener('message', e => {
+      const responseReceivedAt = Date.now();
+
       const response: {
         time: number;
         timestamp: number;
@@ -64,9 +66,17 @@ class VideoReceiverController extends VideoController {
                 this.forcePause();
                 resolve();
                 break;
-              case VideoEvent.play:
+              case VideoEvent.play: {
+                if (response['time'] === 0) {
+                  this.forceSeek(response['time']);
+                } else {
+                  const difference: number = this.getRealTime() - response.timestamp;
+                  console.log(`Latency adjustment: ${difference}ms`);
+                  this.forceSeek(response['time'] + (difference / 1000));
+                }
                 this.forcePlay().then(() => this.waitForBuffering()).catch(console.warn).finally(resolve);
                 break;
+              }
               default:
                 console.error(`Request response not found: ${response.request}`);
                 resolve();
@@ -80,13 +90,9 @@ class VideoReceiverController extends VideoController {
             return;
         }
       }).then(() => {
-        const difference: number = this.getRealTime() - response.timestamp;
-        console.log(`Time adjustment: ${difference}ms`);
-        if (response['time'] === 0) {
-          this.forceSeek(response['time']);
-        } else {
-          this.forceSeek(response['time'] + (difference / 1000));
-        }
+        const bufferAdjustment = Date.now() - responseReceivedAt;
+        console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
+        this.forceSeek(video.currentTime + (bufferAdjustment / 1000))
       }).catch(err => {
         console.error(err);
         this.showNotification(`An error occurred: ${err.message}`);

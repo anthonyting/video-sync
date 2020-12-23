@@ -1,3 +1,5 @@
+import { BufferError } from "./errors";
+
 export async function setupWebSocket(isViewer: boolean): Promise<WebSocket> {
   const socket: WebSocket = new WebSocket(WEBSOCKET_SERVER + (isViewer ? '?isViewer=true' : ''));
 
@@ -37,7 +39,6 @@ export enum VideoEvent {
 export type VideoCallbacks = {
   [name in VideoEvent]?: (ev: Event) => any;
 };
-
 export abstract class VideoController {
   protected video: HTMLVideoElement;
   protected socket: WebSocket;
@@ -48,6 +49,7 @@ export abstract class VideoController {
   private toastElement: HTMLElement;
   private doneBuffering: Promise<void> = null;
   private doneBufferingResolver: () => any;
+  private videoPlaying: boolean = false;
   constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement) {
     this.video = video;
     this.socket = socket;
@@ -57,20 +59,25 @@ export abstract class VideoController {
       delay: 2000
     });
 
+    let i = 0;
     video.addEventListener(VideoEvent.waiting, () => {
-      console.log("Waiting for buffering to finish");
-      this.doneBuffering = new Promise((resolve, reject) => {
-        this.doneBufferingResolver = resolve;
-        setTimeout(() => {
-          if (!video.paused) {
-            reject(new Error("Failed to finish resolve after 1 second"));
-          }
-        }, 1000);
-      });
+      if (!this.videoPlaying) {
+        const j = i++;
+        console.log("Waiting for buffering to finish: " + j);
+        this.doneBuffering = new Promise((resolve, reject) => {
+          const maxBufferTime = 5000;
+          this.doneBufferingResolver = resolve;
+          setTimeout(() => {
+            if (!video.paused && !this.videoPlaying) {
+              reject(new BufferError("Failed to resolve buffer after 5 seconds", j, maxBufferTime));
+            }
+          }, maxBufferTime);
+        });
+      }
     });
 
     video.addEventListener(VideoEvent.playing, () => {
-      console.log("Buffering done");
+      this.videoPlaying = true;
       if (this.doneBufferingResolver) {
         this.doneBufferingResolver();
       }
