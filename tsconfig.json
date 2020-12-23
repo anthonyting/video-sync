@@ -2,9 +2,10 @@
   "compilerOptions": {
     "outDir": "./dist/",
     "noImplicitAny": true,
-    "module": "es6",
+    "module": "esnext",
     "target": "esnext",
     "sourceMap": true,
     "allowUmdGlobalAccess": true,
+    "moduleResolution": "node"
   }
 }

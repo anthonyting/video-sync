@@ -17,7 +17,7 @@ export async function setupWebSocket(isViewer: boolean): Promise<WebSocket> {
   return socketPromise;
 }
 
-export enum MessageTypes {
+export const enum MessageTypes {
   RECONNECT = 'reconnect',
   CONNECT = 'connect',
   DISCONNECT = 'disconnect',
@@ -27,7 +27,7 @@ export enum MessageTypes {
   TIME = 'time',
 };
 
-export enum VideoEvent {
+export const enum VideoEvent {
   play = 'play',
   playing = 'playing',
   pause = 'pause',
