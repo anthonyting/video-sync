@@ -73,7 +73,7 @@ class VideoReceiverController extends VideoController {
             }
             break;
           case MessageTypes.TIME:
-            this.serverTimeDelta = response.data.timeDelta;
+            this.assignTimeDelta(response.timestamp, response.data.sentAt);
             break;
           default:
             console.error(`Undefined message type detected: ${response.type}`);
@@ -87,7 +87,10 @@ class VideoReceiverController extends VideoController {
         } else {
           this.forceSeek(response['time'] + (difference / 1000));
         }
-      }).catch(console.error);
+      }).catch(err => {
+        console.error(err);
+        this.showNotification(`An error occurred: ${err.message}`);
+      });
     });
 
     this.syncTime();

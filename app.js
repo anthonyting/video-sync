@@ -22,13 +22,13 @@ const clients = {};
  * @param {number} receivedAt
  * @param {number} clientTime
  */
-function sendTimeDifference(ws, receivedAt, clientTime) {
+function sendTime(ws, receivedAt, clientTime) {
   ws.send(JSON.stringify({
     type: MessageTypes.TIME,
+    timestamp: receivedAt,
     data: {
-      timeDelta: receivedAt - clientTime
-    },
-    timestamp: Date.now()
+      sentAt: clientTime
+    }
   }));
 }
 
@@ -67,7 +67,7 @@ function createStreamerSocket(ws, clientId) {
         clients[parsed.client].socket.send(msg);
         break;
       case MessageTypes.TIME:
-        sendTimeDifference(ws, now, parsed.timestamp);
+        sendTime(ws, now, parsed.timestamp);
         break;
       default:
         console.warn(`Missing streamer message request type: ${parsed.request}`);
@@ -219,7 +219,7 @@ function initApp(app, server) {
               });
               break;
             case MessageTypes.TIME:
-              sendTimeDifference(ws, now, parsed.timestamp);
+              sendTime(ws, now, parsed.timestamp);
               break;
             default:
               console.error("Undefined message type received: " + parsed.type);

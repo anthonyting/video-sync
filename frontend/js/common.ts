@@ -51,7 +51,7 @@ export abstract class VideoController {
     this.toastElement = toast;
     // @ts-ignore bootstrap types not up to date
     this.toast = new Bootstrap.Toast(toast, {
-      delay: 1000
+      delay: 2000
     });
   }
 
@@ -59,6 +59,16 @@ export abstract class VideoController {
     // @ts-ignore
     this.toast.show();
     this.toastElement.querySelector('.toast-body').textContent = message;
+  }
+
+  protected assignTimeDelta(realTime: number, requestSentAt: number): void {
+    const now = Date.now();
+    this.serverTimeDelta = realTime + (now - requestSentAt) / 2 - now;
+    if (isNaN(this.serverTimeDelta)) {
+      throw new TypeError(`Server time delta failed to initialize with realTime: ${realTime} and requestSentAt: ${requestSentAt}`);
+    }
+
+    console.log(`Synchronizing clock to delta of ${this.serverTimeDelta}ms`);
   }
 
   protected syncTime(): void {
@@ -69,7 +79,7 @@ export abstract class VideoController {
   }
 
   protected getRealTime(): number {
-    if (this.serverTimeDelta === null) {
+    if (this.serverTimeDelta === null || isNaN(this.serverTimeDelta)) {
       throw new TypeError("Server time delta not yet initialized");
     }
     return Date.now() + this.serverTimeDelta;

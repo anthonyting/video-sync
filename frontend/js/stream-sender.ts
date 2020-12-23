@@ -51,9 +51,10 @@ class VideoSenderController extends VideoController {
             }
           }
           break;
-        case MessageTypes.TIME:
-          this.serverTimeDelta = response.data.timeDelta;
+        case MessageTypes.TIME: {
+          this.assignTimeDelta(response.timestamp, response.data.sentAt);
           break;
+        }
         default:
           console.error("Undefined message type detected: " + response['type']);
           return;
