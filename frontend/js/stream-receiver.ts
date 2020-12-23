@@ -65,7 +65,7 @@ class VideoReceiverController extends VideoController {
                 resolve();
                 break;
               case VideoEvent.play:
-                this.forcePlay().then(resolve);
+                this.forcePlay().then(() => this.waitForBuffering()).catch(console.warn).finally(resolve);
                 break;
               default:
                 console.error(`Request response not found: ${response.request}`);

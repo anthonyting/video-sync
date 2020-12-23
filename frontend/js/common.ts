@@ -30,7 +30,8 @@ export enum VideoEvent {
   playing = 'playing',
   pause = 'pause',
   seeking = 'seeking',
-  seeked = 'seeked'
+  seeked = 'seeked',
+  waiting = 'waiting'
 };
 
 export type VideoCallbacks = {
@@ -45,6 +46,8 @@ export abstract class VideoController {
   protected serverTimeDelta: number = null;
   private toast: Bootstrap.Toast;
   private toastElement: HTMLElement;
+  private doneBuffering: Promise<void> = null;
+  private doneBufferingResolver: () => any;
   constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement) {
     this.video = video;
     this.socket = socket;
@@ -53,6 +56,29 @@ export abstract class VideoController {
     this.toast = new Bootstrap.Toast(toast, {
       delay: 2000
     });
+
+    video.addEventListener(VideoEvent.waiting, () => {
+      console.log("Waiting for buffering to finish");
+      this.doneBuffering = new Promise((resolve, reject) => {
+        this.doneBufferingResolver = resolve;
+        setTimeout(() => {
+          if (!video.paused) {
+            reject(new Error("Failed to finish resolve after 1 second"));
+          }
+        }, 1000);
+      });
+    });
+
+    video.addEventListener(VideoEvent.playing, () => {
+      console.log("Buffering done");
+      if (this.doneBufferingResolver) {
+        this.doneBufferingResolver();
+      }
+    });
+  }
+
+  protected waitForBuffering() {
+    return this.doneBuffering;
   }
 
   protected showNotification(message: string) {
@@ -63,7 +89,8 @@ export abstract class VideoController {
 
   protected assignTimeDelta(realTime: number, requestSentAt: number): void {
     const now = Date.now();
-    this.serverTimeDelta = realTime + (now - requestSentAt) / 2 - now;
+    // based on cristian's algorithm for clock synchronization
+    this.serverTimeDelta = now - realTime - (now - requestSentAt) / 2;
     if (isNaN(this.serverTimeDelta)) {
       throw new TypeError(`Server time delta failed to initialize with realTime: ${realTime} and requestSentAt: ${requestSentAt}`);
     }
