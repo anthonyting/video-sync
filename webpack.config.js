@@ -1,6 +1,9 @@
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const {
+  CleanWebpackPlugin
+} = require('clean-webpack-plugin');
 const webpack = require('webpack');
 const path = require('path');
+const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = env => /** @type {import('webpack').Configuration} */ ({
   mode: env.NODE_ENV === 'production' ? 'production' : 'development',
@@ -28,5 +31,18 @@ module.exports = env => /** @type {import('webpack').Configuration} */ ({
     new webpack.DefinePlugin({
       WEBSOCKET_SERVER: JSON.stringify(env.NODE_ENV === 'production' ? 'wss://anthonyting.xyz/abcde' : 'ws://localhost:3000')
     })
-  ]
+  ],
+  optimization: {
+    minimizer: [
+      new TerserPlugin({
+        terserOptions: {
+          compress: {
+            toplevel: true,
+            unsafe_math: true,
+            unsafe: true
+          }
+        }
+      })
+    ]
+  }
 });
