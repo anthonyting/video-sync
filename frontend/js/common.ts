@@ -118,7 +118,7 @@ export abstract class VideoController {
     return Date.now() + this.serverTimeDelta;
   }
 
-  protected onReconnect() {
+  protected reconnect() {
     console.log("Playback reconnected");
   }
 

@@ -12,9 +12,10 @@ class VideoReceiverController extends VideoController {
 
     this.setVideoEvent(VideoEvent.seeking, () => {
       console.log("User seeking manually");
-      if (video.currentTime > this.minimumTime) {
+      if (video.currentTime - 0.5 > this.minimumTime) {
         this.showNotification("Seeking is disabled");
         this.forceSeek(this.minimumTime);
+        this.reconnect();
       }
     });
 
@@ -23,6 +24,7 @@ class VideoReceiverController extends VideoController {
       if (video.currentTime - 0.5 > this.minimumTime) {
         this.showNotification("Seeking is disabled");
         this.forceSeek(this.minimumTime);
+        this.reconnect();
       }
     });
 
@@ -36,11 +38,11 @@ class VideoReceiverController extends VideoController {
     this.setVideoEvent(VideoEvent.pause, () => {
       console.log("User paused manually");
       this.setVideoEvent(VideoEvent.play, () => {
-        this.onReconnect();
+        this.reconnect();
       });
     });
 
-    this.video.play().then(this.onReconnect.bind(this));
+    this.video.play().then(this.reconnect.bind(this));
 
     this.socket.addEventListener('message', e => {
       const responseReceivedAt = Date.now();
@@ -105,8 +107,8 @@ class VideoReceiverController extends VideoController {
     this.syncTime();
   }
 
-  protected onReconnect() {
-    super.onReconnect();
+  protected reconnect() {
+    super.reconnect();
     this.forcePause();
     this.socket.send(JSON.stringify({
       'type': MessageTypes.RECONNECT
