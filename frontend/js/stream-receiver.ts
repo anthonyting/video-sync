@@ -116,10 +116,16 @@ class VideoReceiverController extends VideoController {
 
 window.addEventListener('load', () => {
   const video: HTMLVideoElement = <HTMLVideoElement>document.getElementById("video");
+  const resetPlayer = () => video.currentTime = 0;
 
+  video.addEventListener(VideoEvent.play, video.pause);
+  video.addEventListener(VideoEvent.seeked, resetPlayer)
   setupWebSocket(true)
     .then(socket => {
       (<HTMLButtonElement>document.getElementById('begin')).addEventListener('click', e => {
+        video.removeEventListener(VideoEvent.play, video.pause);
+        video.removeEventListener(VideoEvent.seeked, resetPlayer);
+
         const toast = document.getElementById('toast');
         new VideoReceiverController(video, socket, toast);
         (<HTMLButtonElement>e.target).style.display = "none";
