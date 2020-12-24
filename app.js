@@ -39,7 +39,7 @@ function sendTime(ws, requestReceivedAt, requestSentAt) {
  * @param {string} clientId 
  */
 function createStreamerSocket(ws, clientId) {
-  console.log("Creating streamer socket: " + clientId);
+  console.log("Creating host socket: " + clientId);
 
   new KeepAlive({
     ws
@@ -55,7 +55,7 @@ function createStreamerSocket(ws, clientId) {
         throw new Error("Streamer message not an object");
       }
     } catch (err) {
-      console.warn("Error parsing streamer message: ", err);
+      console.warn("Error parsing host message: ", err);
       return;
     }
 
@@ -81,12 +81,12 @@ function createStreamerSocket(ws, clientId) {
         sendTime(ws, requestReceivedAt, parsed.timestamp);
         break;
       default:
-        console.warn(`Missing streamer message request type: ${parsed.request}`);
+        console.warn(`Missing host message request type: ${parsed.request}`);
     }
   });
 
   ws.on('close', e => {
-    console.log("Closing streamer socket");
+    console.log("Closing host socket");
     clients.forEach(({
       socket
     }) => {
@@ -117,31 +117,31 @@ class StreamerSocket {
     /** @type {Array<Object>} */
     this.queuedMessages = [];
     /** @type {import('ws')} */
-    this.streamer = null;
+    this.host = null;
   }
 
   setStreamer(ws) {
-    this.streamer = ws;
+    this.host = ws;
     for (let i = 0; i < this.queuedMessages.length; i++) {
-      this.streamer.send(JSON.stringify(this.queuedMessages[i]));
+      this.host.send(JSON.stringify(this.queuedMessages[i]));
     }
     this.queuedMessages.length = 0;
   }
 
   send(msg) {
-    if (!this.streamer) {
+    if (!this.host) {
       this.queuedMessages.push(msg);
     } else {
-      this.streamer.send(JSON.stringify(msg));
+      this.host.send(JSON.stringify(msg));
     }
   }
 
   isSet() {
-    return Boolean(this.streamer);
+    return Boolean(this.host);
   }
 
   close() {
-    this.streamer.close();
+    this.host.close();
   }
 }
 

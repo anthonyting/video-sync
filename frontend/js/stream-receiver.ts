@@ -31,7 +31,7 @@ class VideoReceiverController extends VideoController {
     this.setVideoEvent(VideoEvent.play, () => {
       console.log("User attempting to play manually");
       this.forcePause();
-      this.showNotification("Wait for the broadcaster to start the video");
+      this.showNotification("Wait for the host to start the video");
       this.forceSeek(this.maximumSeekPosition);
     });
 
@@ -101,7 +101,7 @@ class VideoReceiverController extends VideoController {
         case MessageTypes.TIME:
           break;
         case MessageTypes.DISCONNECT:
-          this.showNotification("The broadcaster disconnected. Please wait for them to reconnect.");
+          this.showNotification("The host disconnected. Please wait for them to reconnect.");
           this.forcePause();
           break;
         default:

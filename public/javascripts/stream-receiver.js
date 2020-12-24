@@ -143,7 +143,7 @@ window.onload = () => {
   };
   video.onplay = () => {
     pauseWithoutRequest();
-    alert("Wait for the broadcaster to start the video");
+    alert("Wait for the host to start the video");
     video.currentTime = videoTime;
   };
 
