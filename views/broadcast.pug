@@ -2,3 +2,10 @@ extends players
 
 block scripts
   script(src="/abcde/dist/sender.bundle.js")
+
+block append content
+  .d-none.flex-column.justify-content-center.text-center#continueContainer.position-absolute.start-50.translate-middle-x
+    h2.header
+    .choices.d-flex.flex-row.justify-content-center
+      button.btn.btn-primary.m-1 Yes
+      button.btn.btn-danger.m-1 No

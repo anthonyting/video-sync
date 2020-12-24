@@ -49,7 +49,8 @@ export abstract class VideoController {
   private toastElement: HTMLElement;
   private doneBuffering: Promise<void> = null;
   private doneBufferingResolver: () => any;
-  private videoPlaying: boolean = false;
+  private isVideoPlaying: boolean = false;
+  private static readonly storagePrefix: string = "VideoController_";
   constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement) {
     this.video = video;
     this.socket = socket;
@@ -61,14 +62,14 @@ export abstract class VideoController {
 
     let i = 0;
     video.addEventListener(VideoEvent.waiting, () => {
-      if (!this.videoPlaying) {
+      if (!this.isVideoPlaying) {
         const j = i++;
         console.log("Waiting for buffering to finish: " + j);
         this.doneBuffering = new Promise((resolve, reject) => {
           const maxBufferTime = 5000;
           this.doneBufferingResolver = resolve;
           setTimeout(() => {
-            if (!video.paused && !this.videoPlaying) {
+            if (!video.paused && !this.isVideoPlaying) {
               reject(new BufferError("Failed to resolve buffer after 5 seconds", j, maxBufferTime));
             }
           }, maxBufferTime);
@@ -77,7 +78,7 @@ export abstract class VideoController {
     });
 
     video.addEventListener(VideoEvent.playing, () => {
-      this.videoPlaying = true;
+      this.isVideoPlaying = true;
       if (this.doneBufferingResolver) {
         this.doneBufferingResolver();
       }
@@ -166,5 +167,13 @@ export abstract class VideoController {
     this.setVideoEvent(VideoEvent.seeked, () => {
       this.video.addEventListener(VideoEvent.seeking, this.callbacks.seeking);
     });
+  }
+
+  protected static storeData(key: string, value: string) {
+    return window.localStorage.setItem(VideoController.storagePrefix + key, value);
+  }
+
+  public static getData(key: string) {
+    return window.localStorage.getItem(VideoController.storagePrefix + key);
   }
 }

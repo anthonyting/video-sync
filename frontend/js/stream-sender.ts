@@ -12,8 +12,21 @@ interface Peer {
 
 class VideoSenderController extends VideoController {
   private peers: Peer[] = [];
-  constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement) {
+  constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement, startTime: number = 0) {
     super(video, socket, toast);
+
+    video.currentTime = startTime;
+
+    const maxDifference = 2;
+    let time = 0;
+    video.addEventListener('timeupdate', () => {
+      const difference = Math.abs(video.currentTime - time);
+      if (difference > maxDifference) {
+        time = video.currentTime;
+        VideoController.storeData('time', time.toString());
+      }
+    });
+
     this.socket.addEventListener('message', e => {
       const response: {
         type: MessageTypes;
@@ -89,13 +102,37 @@ class VideoSenderController extends VideoController {
   }
 }
 
-window.addEventListener('load', () => {
+async function onLoad() {
+  const continueContainer = document.getElementById('continueContainer');
+
+  const startTime = await new Promise<number>(resolve => {
+    const lastSavedTime = Number(VideoController.getData("time"));
+    if (lastSavedTime) {
+      continueContainer.classList.remove('d-none');
+      continueContainer.classList.add('d-flex');
+
+      continueContainer.querySelector('.header').textContent = `Continue from ${new Date(lastSavedTime * 1000).toISOString().substr(11, 8)}?`;
+      const yesButton = <HTMLButtonElement>continueContainer.querySelector('.btn-primary');
+      const noButton = <HTMLButtonElement>continueContainer.querySelector('.btn-danger');
+      yesButton.addEventListener('click', () => {
+        resolve(lastSavedTime);
+      });
+      noButton.addEventListener('click', () => {
+        resolve(0);
+      });
+    } else {
+      resolve(0);
+    }
+  });
+
+  continueContainer.classList.add('d-none');
   const video: HTMLVideoElement = <HTMLVideoElement>document.getElementById("video");
-  setupWebSocket(false)
-    .then(socket => {
-      const toast = document.getElementById('toast');
-      new VideoSenderController(video, socket, toast);
-      video.removeAttribute('disabled');
-    })
-    .catch(console.error);
+  const socket = await setupWebSocket(false);
+  const toast = document.getElementById('toast');
+  new VideoSenderController(video, socket, toast, startTime);
+  video.removeAttribute('disabled');
+}
+
+window.addEventListener('load', () => {
+  onLoad().catch(console.error);
 });
