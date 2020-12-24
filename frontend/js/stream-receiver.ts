@@ -6,22 +6,23 @@ import {
 } from './common'
 
 class VideoReceiverController extends VideoController {
+  private minimumTime: number = 0;
   constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement) {
     super(video, socket, toast);
 
-    let videoTime = 0;
-    this.video.addEventListener('timeupdate', () => {
-      if (!video.seeking) {
-        videoTime = video.currentTime;
+    this.setVideoEvent(VideoEvent.seeking, () => {
+      console.log("User seeking manually");
+      if (video.currentTime > this.minimumTime) {
+        this.showNotification("Seeking is disabled");
+        this.forceSeek(this.minimumTime);
       }
     });
 
-    this.setVideoEvent(VideoEvent.seeking, () => {
-      console.log("User attempting to seek manually");
-      const delta = video.currentTime - videoTime;
-      if (Math.abs(delta) > 0.01) {
+    video.addEventListener(VideoEvent.seeked, () => {
+      console.log("User seeked");
+      if (video.currentTime - 0.5 > this.minimumTime) {
         this.showNotification("Seeking is disabled");
-        this.forceSeek(videoTime);
+        this.forceSeek(this.minimumTime);
       }
     });
 
@@ -29,7 +30,7 @@ class VideoReceiverController extends VideoController {
       console.log("User attempting to play manually");
       this.forcePause();
       this.showNotification("Wait for the broadcaster to start the video");
-      this.forceSeek(videoTime);
+      this.forceSeek(this.minimumTime);
     });
 
     this.setVideoEvent(VideoEvent.pause, () => {
@@ -92,7 +93,9 @@ class VideoReceiverController extends VideoController {
       }).then(value => {
         const bufferAdjustment = Date.now() - responseReceivedAt;
         console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
-        this.forceSeek((value ? value : video.currentTime) + (bufferAdjustment / 1000));
+        const seekedValue = (value ? value : video.currentTime) + (bufferAdjustment / 1000);
+        this.forceSeek(seekedValue);
+        this.minimumTime = Math.max(response.time, seekedValue);
       }).catch(err => {
         console.error(err);
         this.showNotification(`An error occurred: ${err.message}`);
