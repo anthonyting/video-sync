@@ -51,12 +51,10 @@ class VideoSenderController extends VideoController {
             }
           }
           break;
-        case MessageTypes.TIME: {
-          this.assignTimeDelta(response.data.requestSentAt, response.timestamp, response.data.responseSentAt, Date.now());
+        case MessageTypes.TIME:
           break;
-        }
         default:
-          console.error("Undefined message type detected: " + response['type']);
+          console.error(`Undefined message type detected: ${response.type}`);
           return;
       }
     });
@@ -95,11 +93,9 @@ window.addEventListener('load', () => {
   const video: HTMLVideoElement = <HTMLVideoElement>document.getElementById("video");
   setupWebSocket(false)
     .then(socket => {
-      (<HTMLButtonElement>document.getElementById('begin')).addEventListener('click', e => {
-        const toast = document.getElementById('toast');
-        new VideoSenderController(video, socket, toast);
-        (<HTMLButtonElement>e.target).style.display = "none";
-      });
+      const toast = document.getElementById('toast');
+      new VideoSenderController(video, socket, toast);
+      video.removeAttribute('disabled');
     })
     .catch(console.error);
 });

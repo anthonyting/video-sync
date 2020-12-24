@@ -82,6 +82,17 @@ export abstract class VideoController {
         this.doneBufferingResolver();
       }
     });
+
+    socket.addEventListener('message', message => {
+      const response: {
+        timestamp: number;
+        data: any;
+        type: MessageTypes
+      } = JSON.parse(message.data);
+      if (response.type === MessageTypes.TIME) {
+        this.assignTimeDelta(response.data.requestSentAt, response.timestamp, response.data.responseSentAt, Date.now());
+      }
+    });
   }
 
   protected waitForBuffering() {

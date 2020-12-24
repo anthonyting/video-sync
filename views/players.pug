@@ -3,7 +3,6 @@ extends layout
 block content
   main.container-fluid.d-flex.justify-content-center.flex-column
     .video-container
-      video#video.p-1(controls preload="metadata" controlsList="nodownload")
+      video#video.p-1(controls preload="metadata" controlsList="nodownload" disabled)
         source(src="https://anthonyting.xyz/test/video.mp4" type="video/mp4")
         track(label="English" kind="subtitles" srclang="en" src="https://anthonyting.xyz/test/video.en.vtt" default)
-    button.w-100.btn.btn-primary#begin Begin

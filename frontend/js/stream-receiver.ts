@@ -6,24 +6,24 @@ import {
 } from './common'
 
 class VideoReceiverController extends VideoController {
-  private minimumTime: number = 0;
+  private maximumSeekPosition: number = 0;
   constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement) {
     super(video, socket, toast);
 
     this.setVideoEvent(VideoEvent.seeking, () => {
       console.log("User seeking manually");
-      if (video.currentTime - 0.5 > this.minimumTime) {
+      if (video.currentTime - 0.5 > this.maximumSeekPosition) {
         this.showNotification("Seeking is disabled");
-        this.forceSeek(this.minimumTime);
+        this.forceSeek(this.maximumSeekPosition);
         this.reconnect();
       }
     });
 
     video.addEventListener(VideoEvent.seeked, () => {
-      console.log("User seeked");
-      if (video.currentTime - 0.5 > this.minimumTime) {
+      if (video.currentTime - 0.5 > this.maximumSeekPosition) {
+        console.log("User seeked manually");
         this.showNotification("Seeking is disabled");
-        this.forceSeek(this.minimumTime);
+        this.forceSeek(this.maximumSeekPosition);
         this.reconnect();
       }
     });
@@ -32,7 +32,7 @@ class VideoReceiverController extends VideoController {
       console.log("User attempting to play manually");
       this.forcePause();
       this.showNotification("Wait for the broadcaster to start the video");
-      this.forceSeek(this.minimumTime);
+      this.forceSeek(this.maximumSeekPosition);
     });
 
     this.setVideoEvent(VideoEvent.pause, () => {
@@ -42,7 +42,13 @@ class VideoReceiverController extends VideoController {
       });
     });
 
-    this.video.play().then(this.reconnect.bind(this));
+    this.forcePlay().then(() => {
+      this.forcePause();
+      this.reconnect();
+    }).catch(err => {
+      console.error(err);
+      this.showNotification(err.message);
+    });
 
     this.socket.addEventListener('message', e => {
       const responseReceivedAt = Date.now();
@@ -57,51 +63,47 @@ class VideoReceiverController extends VideoController {
 
       console.log("Received socket response: ", response);
 
-      new Promise<number | void>(resolve => {
-        switch (response.type) {
-          case MessageTypes.RESPOND:
-          // fall through
-          case MessageTypes.DISPATCH:
-            switch (response.request) {
-              case VideoEvent.pause:
-              // fall through
-              case VideoEvent.seeking:
-                this.forcePause();
-                resolve(response.time);
-                break;
-              case VideoEvent.play: {
-                const difference: number = this.getRealTime() - response.timestamp;
-                console.log(`Latency adjustment: ${difference}ms`);
-                if (response.time === 0) {
-                  this.forceSeek(response.time);
-                } else {
-                  this.forceSeek(response.time + (difference / 1000));
-                }
-                this.forcePlay().then(() => this.waitForBuffering()).catch(console.warn).finally(resolve);
-                break;
+      switch (response.type) {
+        case MessageTypes.RESPOND:
+        // fall through
+        case MessageTypes.DISPATCH:
+          switch (response.request) {
+            case VideoEvent.pause:
+            // fall through
+            case VideoEvent.seeking:
+              this.forcePause();
+              this.forceSeek(response.time);
+              this.maximumSeekPosition = response.time;
+              break;
+            case VideoEvent.play: {
+              const difference: number = this.getRealTime() - response.timestamp;
+              console.log(`Latency adjustment: ${difference}ms`);
+              if (response.time === 0) {
+                this.forceSeek(response.time);
+              } else {
+                this.forceSeek(response.time + (difference / 1000));
               }
-              default:
-                console.error(`Request response not found: ${response.request}`);
-                resolve();
+              this.forcePlay()
+                .then(() => this.waitForBuffering())
+                .catch(console.warn)
+                .finally(() => {
+                  const bufferAdjustment = Date.now() - responseReceivedAt + 25;
+                  console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
+                  this.forceSeek(this.video.currentTime + (bufferAdjustment / 1000));
+                  this.maximumSeekPosition = Math.max(response.time, this.video.currentTime);
+                });
+              break;
             }
-            break;
-          case MessageTypes.TIME:
-            this.assignTimeDelta(response.data.requestSentAt, response.timestamp, response.data.responseSentAt, Date.now());
-            break;
-          default:
-            console.error(`Undefined message type detected: ${response.type}`);
-            return;
-        }
-      }).then(value => {
-        const bufferAdjustment = Date.now() - responseReceivedAt;
-        console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
-        const seekedValue = (value ? value : video.currentTime) + (bufferAdjustment / 1000);
-        this.forceSeek(seekedValue);
-        this.minimumTime = Math.max(response.time, seekedValue);
-      }).catch(err => {
-        console.error(err);
-        this.showNotification(`An error occurred: ${err.message}`);
-      });
+            default:
+              console.error(`Request response not found: ${response.request}`);
+          }
+          break;
+        case MessageTypes.TIME:
+          break;
+        default:
+          console.error(`Undefined message type detected: ${response.type}`);
+          return;
+      }
     });
 
     this.syncTime();
@@ -124,14 +126,12 @@ window.addEventListener('load', () => {
   video.addEventListener(VideoEvent.seeked, resetPlayer)
   setupWebSocket(true)
     .then(socket => {
-      (<HTMLButtonElement>document.getElementById('begin')).addEventListener('click', e => {
-        video.removeEventListener(VideoEvent.play, video.pause);
-        video.removeEventListener(VideoEvent.seeked, resetPlayer);
+      video.removeEventListener(VideoEvent.play, video.pause);
+      video.removeEventListener(VideoEvent.seeked, resetPlayer);
 
-        const toast = document.getElementById('toast');
-        new VideoReceiverController(video, socket, toast);
-        (<HTMLButtonElement>e.target).style.display = "none";
-      });
+      const toast = document.getElementById('toast');
+      new VideoReceiverController(video, socket, toast);
+      video.removeAttribute('disabled');
     })
     .catch(console.error);
 });
