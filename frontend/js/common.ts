@@ -94,12 +94,11 @@ export abstract class VideoController {
     this.toastElement.querySelector('.toast-body').textContent = message;
   }
 
-  protected assignTimeDelta(realTime: number, requestSentAt: number): void {
-    const now = Date.now();
-    // based on cristian's algorithm for clock synchronization
-    this.serverTimeDelta = now - realTime - (now - requestSentAt) / 2;
+  protected assignTimeDelta(requestSentAt: number, requestReceivedAt: number, responseSentAt: number, responseReceivedAt: number): void {
+    // based on https://en.wikipedia.org/wiki/Network_Time_Protocol#Clock_synchronization_algorithm
+    this.serverTimeDelta = ((requestReceivedAt - requestSentAt) + (responseReceivedAt - responseSentAt)) / 2;
     if (isNaN(this.serverTimeDelta)) {
-      throw new TypeError(`Server time delta failed to initialize with realTime: ${realTime} and requestSentAt: ${requestSentAt}`);
+      throw new TypeError(`Server time delta failed to initialize`);
     }
 
     console.log(`Synchronizing clock to delta of ${this.serverTimeDelta}ms`);

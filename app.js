@@ -19,15 +19,16 @@ const clients = {};
 /**
  * 
  * @param {import('ws')} ws 
- * @param {number} receivedAt
- * @param {number} clientTime
+ * @param {number} requestReceivedAt
+ * @param {number} requestSentAt
  */
-function sendTime(ws, receivedAt, clientTime) {
+function sendTime(ws, requestReceivedAt, requestSentAt) {
   ws.send(JSON.stringify({
     type: MessageTypes.TIME,
-    timestamp: receivedAt,
+    timestamp: requestReceivedAt,
     data: {
-      sentAt: clientTime
+      requestSentAt: requestSentAt,
+      responseSentAt: Date.now()
     }
   }));
 }
@@ -45,7 +46,7 @@ function createStreamerSocket(ws, clientId) {
   });
 
   ws.on('message', msg => {
-    const now = Date.now();
+    const requestReceivedAt = Date.now();
 
     let parsed;
     try {
@@ -67,7 +68,7 @@ function createStreamerSocket(ws, clientId) {
         clients[parsed.client].socket.send(msg);
         break;
       case MessageTypes.TIME:
-        sendTime(ws, now, parsed.timestamp);
+        sendTime(ws, requestReceivedAt, parsed.timestamp);
         break;
       default:
         console.warn(`Missing streamer message request type: ${parsed.request}`);
@@ -209,8 +210,14 @@ function initApp(app, server) {
           }
         });
         ws.on('message', msg => {
-          const now = Date.now();
-          const parsed = JSON.parse(msg);
+          const requestReceivedAt = Date.now();
+          let parsed;
+          try {
+            parsed = JSON.parse(msg);
+          } catch(err) {
+            console.warn("Error parsing client message: ", err);
+            return;
+          }
           switch (parsed.type) {
             case MessageTypes.RECONNECT:
               streamerSocket.send({
@@ -219,7 +226,7 @@ function initApp(app, server) {
               });
               break;
             case MessageTypes.TIME:
-              sendTime(ws, now, parsed.timestamp);
+              sendTime(ws, requestReceivedAt, parsed.timestamp);
               break;
             default:
               console.error("Undefined message type received: " + parsed.type);
