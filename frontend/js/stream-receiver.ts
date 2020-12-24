@@ -100,6 +100,10 @@ class VideoReceiverController extends VideoController {
           break;
         case MessageTypes.TIME:
           break;
+        case MessageTypes.DISCONNECT:
+          this.showNotification("The broadcaster disconnected. Please wait for them to reconnect.");
+          this.forcePause();
+          break;
         default:
           console.error(`Undefined message type detected: ${response.type}`);
           return;

@@ -12,9 +12,9 @@ const wss = new WebSocket.Server({
 });
 
 /**
- * @type {Object.<string, {socket: import('ws'), interval: number}} clients
+ * @type {Map<string, {socket: import('ws'), interval: number}>} clients
  */
-const clients = {};
+const clients = new Map();
 
 /**
  * 
@@ -51,6 +51,9 @@ function createStreamerSocket(ws, clientId) {
     let parsed;
     try {
       parsed = JSON.parse(msg);
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error("Streamer message not an object");
+      }
     } catch (err) {
       console.warn("Error parsing streamer message: ", err);
       return;
@@ -58,14 +61,21 @@ function createStreamerSocket(ws, clientId) {
 
     switch (parsed.type) {
       case MessageTypes.DISPATCH:
-        for (const id of Object.keys(clients)) {
-          if (id != clientId) {
-            clients[id].socket.send(msg);
-          }
-        }
+        clients.forEach(({
+          socket
+        }) => {
+          socket.send(msg);
+        });
         break;
       case MessageTypes.RESPOND:
-        clients[parsed.client].socket.send(msg);
+        const {
+          socket
+        } = clients.get(parsed.client);
+        if (socket) {
+          socket.send(msg);
+        } else {
+          console.warn(`Missing client for id: ${parsed.client}`);
+        }
         break;
       case MessageTypes.TIME:
         sendTime(ws, requestReceivedAt, parsed.timestamp);
@@ -77,6 +87,14 @@ function createStreamerSocket(ws, clientId) {
 
   ws.on('close', e => {
     console.log("Closing streamer socket");
+    clients.forEach(({
+      socket
+    }) => {
+      socket.send(JSON.stringify({
+        type: MessageTypes.DISCONNECT,
+        timestamp: Date.now()
+      }));
+    });
     // allow users to control stream themselves then?
   });
 }
@@ -186,14 +204,14 @@ function initApp(app, server) {
       const isViewer = Boolean(queryParams.get('isViewer'));
 
       const sessionId = req.session.clientId;
-      const clientId = sessionId || idGen++;
+      const clientId = parseInt(sessionId || idGen++, 10);
       req.session.clientId = clientId;
       if (isViewer && req.session.hasAccess) {
         console.log(sessionId ? `Old viewer reconnected: ${clientId}` : `New viewer connected: ${clientId}`);
 
-        clients[clientId] = {
+        clients.set(clientId, {
           socket: ws
-        };
+        });
         streamerSocket.send({
           type: MessageTypes.CONNECT,
           id: clientId
@@ -204,9 +222,9 @@ function initApp(app, server) {
             id: clientId
           });
           if (code === 1006) {
-            console.log(`${clientId} disconnected abrubtly: ` + reason);
+            console.log(`${clientId} disconnected abrubtly: ${reason}`);
           } else {
-            delete clients[clientId];
+            clients.delete(clientId);
           }
         });
         ws.on('message', msg => {
@@ -214,7 +232,10 @@ function initApp(app, server) {
           let parsed;
           try {
             parsed = JSON.parse(msg);
-          } catch(err) {
+            if (!parsed || typeof parsed !== 'object') {
+              throw new Error("Client message not an object");
+            }
+          } catch (err) {
             console.warn("Error parsing client message: ", err);
             return;
           }
@@ -229,7 +250,7 @@ function initApp(app, server) {
               sendTime(ws, requestReceivedAt, parsed.timestamp);
               break;
             default:
-              console.error("Undefined message type received: " + parsed.type);
+              console.error(`Undefined message type received: ${parsed.type}`);
               break;
           }
         });
