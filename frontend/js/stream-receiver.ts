@@ -54,7 +54,7 @@ class VideoReceiverController extends VideoController {
 
       console.log("Received socket response: ", response);
 
-      new Promise<void>(resolve => {
+      new Promise<number | void>(resolve => {
         switch (response.type) {
           case MessageTypes.RESPOND:
           // fall through
@@ -64,15 +64,15 @@ class VideoReceiverController extends VideoController {
               // fall through
               case VideoEvent.seeking:
                 this.forcePause();
-                resolve();
+                resolve(response.time);
                 break;
               case VideoEvent.play: {
-                if (response['time'] === 0) {
-                  this.forceSeek(response['time']);
+                const difference: number = this.getRealTime() - response.timestamp;
+                console.log(`Latency adjustment: ${difference}ms`);
+                if (response.time === 0) {
+                  this.forceSeek(response.time);
                 } else {
-                  const difference: number = this.getRealTime() - response.timestamp;
-                  console.log(`Latency adjustment: ${difference}ms`);
-                  this.forceSeek(response['time'] + (difference / 1000));
+                  this.forceSeek(response.time + (difference / 1000));
                 }
                 this.forcePlay().then(() => this.waitForBuffering()).catch(console.warn).finally(resolve);
                 break;
@@ -89,10 +89,10 @@ class VideoReceiverController extends VideoController {
             console.error(`Undefined message type detected: ${response.type}`);
             return;
         }
-      }).then(() => {
+      }).then(value => {
         const bufferAdjustment = Date.now() - responseReceivedAt;
         console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
-        this.forceSeek(video.currentTime + (bufferAdjustment / 1000))
+        this.forceSeek((value ? value : video.currentTime) + (bufferAdjustment / 1000));
       }).catch(err => {
         console.error(err);
         this.showNotification(`An error occurred: ${err.message}`);
