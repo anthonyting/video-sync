@@ -118,6 +118,7 @@ export abstract class VideoController {
         if (++attempts <= MAX_ATTEMPTS) {
           setupWebSocket(this.isViewer)
             .then(socket => {
+              this.showNotification(`Your server connection has reconnected after ${attempts} attempt${attempts > 1 ? 's' : ''}.`);
               this.socket = socket;
               this.setupReconnectFallback();
               clearInterval(retryInterval);
