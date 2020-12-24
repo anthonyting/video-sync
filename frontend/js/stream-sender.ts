@@ -13,7 +13,7 @@ interface Peer {
 class VideoSenderController extends VideoController {
   private peers: Peer[] = [];
   constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement, startTime: number = 0) {
-    super(video, socket, toast);
+    super(video, socket, toast, false);
 
     video.currentTime = startTime;
 

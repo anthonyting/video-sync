@@ -9,7 +9,6 @@ export async function setupWebSocket(isViewer: boolean): Promise<WebSocket> {
       resolve(socket);
     });
     socket.addEventListener('error', error => {
-      console.error("Error connecting to websocket: ", error)
       reject(error);
     });
   });
@@ -51,13 +50,23 @@ export abstract class VideoController {
   private doneBufferingResolver: () => any;
   private isVideoPlaying: boolean = false;
   private static readonly storagePrefix: string = "VideoController_";
-  constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement) {
+  private isViewer: boolean;
+  constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement, isViewer: boolean) {
+    this.isViewer = isViewer;
     this.video = video;
     this.socket = socket;
     this.toastElement = toast;
     // @ts-ignore bootstrap types not up to date
     this.toast = new Bootstrap.Toast(toast, {
       delay: 2000
+    });
+
+    window.addEventListener('offline', e => {
+      this.showNotification("Your internet disconnected");
+    });
+
+    window.addEventListener('online', e => {
+      this.showNotification("Your internet reconnected");
     });
 
     let i = 0;
@@ -93,6 +102,34 @@ export abstract class VideoController {
       if (response.type === MessageTypes.TIME) {
         this.assignTimeDelta(response.data.requestSentAt, response.timestamp, response.data.responseSentAt, Date.now());
       }
+    });
+
+    this.setupReconnectFallback();
+  }
+
+  private setupReconnectFallback() {
+    this.socket.addEventListener('close', e => {
+      console.warn(`Socket closed: ${e.code} ${e.reason}`);
+      this.showNotification("Your server connection has disconnected");
+      const MAX_ATTEMPTS = 10;
+      const TIME_BETWEEN_ATTEMPTS = 5000; // ms
+      let attempts = 0;
+      const retryInterval = setInterval(() => {
+        if (++attempts <= MAX_ATTEMPTS) {
+          setupWebSocket(this.isViewer)
+            .then(socket => {
+              this.socket = socket;
+              this.setupReconnectFallback();
+              clearInterval(retryInterval);
+            })
+            .catch(err => {
+              console.warn(`Error connecting to socket. Attempt ${attempts}/${MAX_ATTEMPTS}.`, err);
+            });
+        } else {
+          this.showNotification(`Failed to connect to the server after ${MAX_ATTEMPTS} attempts.`);
+          clearInterval(retryInterval);
+        }
+      }, TIME_BETWEEN_ATTEMPTS);
     });
   }
 

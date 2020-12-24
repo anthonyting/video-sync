@@ -8,7 +8,7 @@ import {
 class VideoReceiverController extends VideoController {
   private maximumSeekPosition: number = 0;
   constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement) {
-    super(video, socket, toast);
+    super(video, socket, toast, true);
 
     this.setVideoEvent(VideoEvent.seeking, () => {
       console.log("User seeking manually");
