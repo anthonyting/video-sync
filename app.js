@@ -171,6 +171,9 @@ function initApp(app, server) {
 
   app.set('trust proxy', 1);
 
+  app.use((req, res, next) => {
+    res.locals.BASEURL = '/abcde';
+  });
   app.use('/abcde', indexRouter);
 
   // catch 404 and forward to error handler
