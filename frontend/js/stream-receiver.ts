@@ -7,6 +7,7 @@ import {
 
 class VideoReceiverController extends VideoController {
   private maximumSeekPosition: number = 0;
+  private hostDisconnected: boolean = false;
   constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement) {
     super(video, socket, toast, true);
 
@@ -107,10 +108,14 @@ class VideoReceiverController extends VideoController {
         break;
       case MessageTypes.DISCONNECT:
         this.showNotification("The host disconnected. Wait for them to reconnect.");
+        this.hostDisconnected = true;
         this.forcePause();
         break;
       case MessageTypes.CONNECT:
-        this.showNotification("The host has connected. Wait for them to start playing");
+        if (this.hostDisconnected) {
+          this.showNotification("The host has connected. Wait for them to start playing");
+          this.hostDisconnected = false;
+        }
         break;
       default:
         console.error(`Undefined message type detected: ${response.type}`);
