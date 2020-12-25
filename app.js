@@ -173,6 +173,7 @@ function initApp(app, server) {
 
   app.use((req, res, next) => {
     res.locals.BASEURL = '/abcde';
+    next();
   });
   app.use('/abcde', indexRouter);
 
