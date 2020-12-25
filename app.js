@@ -203,28 +203,26 @@ function initApp(app, server) {
       const queryParams = new url.URLSearchParams(req._parsedUrl.search);
       const isViewer = Boolean(queryParams.get('isViewer'));
 
-      const sessionId = req.session.clientId;
-      const clientId = parseInt(sessionId || idGen++, 10);
-      req.session.clientId = clientId;
+      const sessionID = req.sessionID;
       if (isViewer && req.session.hasAccess) {
-        console.log(sessionId ? `Old viewer reconnected: ${clientId}` : `New viewer connected: ${clientId}`);
+        console.log(`Viewer connected: ${sessionID}`);
 
-        clients.set(clientId, {
+        clients.set(sessionID, {
           socket: ws
         });
         streamerSocket.send({
           type: MessageTypes.CONNECT,
-          id: clientId
+          id: sessionID
         });
         ws.on('close', (code, reason) => {
           streamerSocket.send({
             type: MessageTypes.DISCONNECT,
-            id: clientId
+            id: sessionID
           });
           if (code === 1006) {
-            console.log(`${clientId} disconnected abrubtly: ${reason}`);
+            console.log(`${sessionID} disconnected abrubtly: ${reason}`);
           } else {
-            clients.delete(clientId);
+            clients.delete(sessionID);
           }
         });
         ws.on('message', msg => {
@@ -243,7 +241,7 @@ function initApp(app, server) {
             case MessageTypes.RECONNECT:
               streamerSocket.send({
                 type: MessageTypes.RECONNECT,
-                id: clientId
+                id: sessionID
               });
               break;
             case MessageTypes.TIME:
@@ -257,11 +255,11 @@ function initApp(app, server) {
       } else if (req.session.hasStreamAccess) {
         if (!streamerSocket.isSet()) {
           streamerSocket.setStreamer(ws);
-          createStreamerSocket(ws, clientId, streamerMsgs);
+          createStreamerSocket(ws, sessionID, streamerMsgs);
         } else {
           streamerSocket.close();
           streamerSocket.setStreamer(ws);
-          createStreamerSocket(ws, clientId, streamerMsgs);
+          createStreamerSocket(ws, sessionID, streamerMsgs);
         }
       } else {
         return ws.close(1008, "Unauthorized");
@@ -269,7 +267,7 @@ function initApp(app, server) {
 
       new KeepAlive({
         clients,
-        clientId,
+        clientId: sessionID,
         ws
       });
     });
