@@ -46,42 +46,47 @@ function createStreamerSocket(ws, clientId) {
   });
 
   ws.on('message', msg => {
-    const requestReceivedAt = Date.now();
-
-    let parsed;
     try {
-      parsed = JSON.parse(msg);
-      if (!parsed || typeof parsed !== 'object') {
-        throw new Error("Streamer message not an object");
+      const requestReceivedAt = Date.now();
+
+      let parsed;
+      try {
+        parsed = JSON.parse(msg);
+        if (!parsed || typeof parsed !== 'object') {
+          throw new Error("Streamer message not an object");
+        }
+      } catch (err) {
+        console.warn("Error parsing host message: ", err);
+        return;
+      }
+
+      switch (parsed.type) {
+        case MessageTypes.DISPATCH:
+          clients.forEach(({
+            socket
+          }) => {
+            socket.send(msg);
+          });
+          break;
+        case MessageTypes.RESPOND:
+          const client = clients.get(parsed.client);
+          if (client) {
+            const socket = client.socket;
+            if (socket) {
+              socket.send(msg);
+            } else {
+              console.warn(`Missing client for id: ${parsed.client}`);
+            }
+          }
+          break;
+        case MessageTypes.TIME:
+          sendTime(ws, requestReceivedAt, parsed.timestamp);
+          break;
+        default:
+          console.warn(`Missing host message request type: ${parsed.request}`);
       }
     } catch (err) {
-      console.warn("Error parsing host message: ", err);
-      return;
-    }
-
-    switch (parsed.type) {
-      case MessageTypes.DISPATCH:
-        clients.forEach(({
-          socket
-        }) => {
-          socket.send(msg);
-        });
-        break;
-      case MessageTypes.RESPOND:
-        const {
-          socket
-        } = clients.get(parsed.client);
-        if (socket) {
-          socket.send(msg);
-        } else {
-          console.warn(`Missing client for id: ${parsed.client}`);
-        }
-        break;
-      case MessageTypes.TIME:
-        sendTime(ws, requestReceivedAt, parsed.timestamp);
-        break;
-      default:
-        console.warn(`Missing host message request type: ${parsed.request}`);
+      console.error("Error parsing message: ", msg, err);
     }
   });
 
@@ -226,30 +231,34 @@ function initApp(app, server) {
           }
         });
         ws.on('message', msg => {
-          const requestReceivedAt = Date.now();
-          let parsed;
           try {
-            parsed = JSON.parse(msg);
-            if (!parsed || typeof parsed !== 'object') {
-              throw new Error("Client message not an object");
+            const requestReceivedAt = Date.now();
+            let parsed;
+            try {
+              parsed = JSON.parse(msg);
+              if (!parsed || typeof parsed !== 'object') {
+                throw new Error("Client message not an object");
+              }
+            } catch (err) {
+              console.warn("Error parsing client message: ", err);
+              return;
+            }
+            switch (parsed.type) {
+              case MessageTypes.RECONNECT:
+                streamerSocket.send({
+                  type: MessageTypes.RECONNECT,
+                  id: sessionID
+                });
+                break;
+              case MessageTypes.TIME:
+                sendTime(ws, requestReceivedAt, parsed.timestamp);
+                break;
+              default:
+                console.error(`Undefined message type received: ${parsed.type}`);
+                break;
             }
           } catch (err) {
-            console.warn("Error parsing client message: ", err);
-            return;
-          }
-          switch (parsed.type) {
-            case MessageTypes.RECONNECT:
-              streamerSocket.send({
-                type: MessageTypes.RECONNECT,
-                id: sessionID
-              });
-              break;
-            case MessageTypes.TIME:
-              sendTime(ws, requestReceivedAt, parsed.timestamp);
-              break;
-            default:
-              console.error(`Undefined message type received: ${parsed.type}`);
-              break;
+            console.error("Error parsing message: ", msg, err);
           }
         });
       } else if (req.session.hasStreamAccess) {

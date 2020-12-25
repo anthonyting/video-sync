@@ -27,51 +27,6 @@ class VideoSenderController extends VideoController {
       }
     });
 
-    this.socket.addEventListener('message', e => {
-      const response: {
-        type: MessageTypes;
-        id: string;
-        timestamp: number;
-        data: any;
-      } = JSON.parse(e.data);
-
-      const id = response.id;
-      switch (response.type) {
-        case MessageTypes.RECONNECT: {
-          console.log(new Date() + ": " + id + " is connected");
-          const eventToSend: VideoEvent = this.video.paused ? VideoEvent.pause : VideoEvent.play;
-          const videoData: any = this.getVideoData(eventToSend, MessageTypes.RESPOND);
-          videoData.client = id;
-          this.socket.send(JSON.stringify(videoData));
-          break;
-        }
-        case MessageTypes.CONNECT:
-          console.log(new Date() + ": " + id + " is connecting");
-          for (let i = 0; i < this.peers.length; i++) {
-            if (this.peers[i].id === id) {
-              this.peers[i].ready = false;
-              break;
-            }
-          }
-          // this.video.pause();
-          break;
-        case MessageTypes.DISCONNECT:
-          console.log(new Date() + ": " + id + " disconnected");
-          for (let i = 0; i < this.peers.length; i++) {
-            if (this.peers[i].id === id) {
-              this.peers.splice(i);
-              break;
-            }
-          }
-          break;
-        case MessageTypes.TIME:
-          break;
-        default:
-          console.error(`Undefined message type detected: ${response.type}`);
-          return;
-      }
-    });
-
     this.setVideoEvent(VideoEvent.pause, () => {
       this.socket.send(this.getDispatchData(VideoEvent.pause));
     });
@@ -86,6 +41,53 @@ class VideoSenderController extends VideoController {
     });
 
     this.syncTime();
+  }
+
+  protected onSocketMessage(message: MessageEvent<any>) {
+    super.onSocketMessage(message);
+
+    const response: {
+      type: MessageTypes;
+      id: string;
+      timestamp: number;
+      data: any;
+    } = JSON.parse(message.data);
+
+    const id = response.id;
+    switch (response.type) {
+      case MessageTypes.RECONNECT: {
+        console.log(new Date() + ": " + id + " is connected");
+        const eventToSend: VideoEvent = this.video.paused ? VideoEvent.pause : VideoEvent.play;
+        const videoData: any = this.getVideoData(eventToSend, MessageTypes.RESPOND);
+        videoData.client = id;
+        this.socket.send(JSON.stringify(videoData));
+        break;
+      }
+      case MessageTypes.CONNECT:
+        console.log(new Date() + ": " + id + " is connecting");
+        for (let i = 0; i < this.peers.length; i++) {
+          if (this.peers[i].id === id) {
+            this.peers[i].ready = false;
+            break;
+          }
+        }
+        // this.video.pause();
+        break;
+      case MessageTypes.DISCONNECT:
+        console.log(new Date() + ": " + id + " disconnected");
+        for (let i = 0; i < this.peers.length; i++) {
+          if (this.peers[i].id === id) {
+            this.peers.splice(i);
+            break;
+          }
+        }
+        break;
+      case MessageTypes.TIME:
+        break;
+      default:
+        console.error(`Undefined message type detected: ${response.type}`);
+        return;
+    }
   }
 
   private getDispatchData(request: VideoEvent) {

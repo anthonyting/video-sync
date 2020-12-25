@@ -93,18 +93,20 @@ export abstract class VideoController {
       }
     });
 
-    socket.addEventListener('message', message => {
-      const response: {
-        timestamp: number;
-        data: any;
-        type: MessageTypes
-      } = JSON.parse(message.data);
-      if (response.type === MessageTypes.TIME) {
-        this.assignTimeDelta(response.data.requestSentAt, response.timestamp, response.data.responseSentAt, Date.now());
-      }
-    });
+    this.socket.addEventListener('message', this.onSocketMessage.bind(this));
 
     this.setupReconnectFallback();
+  }
+
+  protected onSocketMessage(message: MessageEvent<any>) {
+    const response: {
+      timestamp: number;
+      data: any;
+      type: MessageTypes
+    } = JSON.parse(message.data);
+    if (response.type === MessageTypes.TIME) {
+      this.assignTimeDelta(response.data.requestSentAt, response.timestamp, response.data.responseSentAt, Date.now());
+    }
   }
 
   private setupReconnectFallback() {
@@ -120,6 +122,7 @@ export abstract class VideoController {
             .then(socket => {
               this.showNotification(`Your server connection has reconnected after ${attempts} attempt${attempts > 1 ? 's' : ''}.`);
               this.socket = socket;
+              this.socket.addEventListener('message', this.onSocketMessage.bind(this));
               this.setupReconnectFallback();
               clearInterval(retryInterval);
             })

@@ -50,67 +50,69 @@ class VideoReceiverController extends VideoController {
       this.showNotification(err.message);
     });
 
-    this.socket.addEventListener('message', e => {
-      const responseReceivedAt = Date.now();
-
-      const response: {
-        time: number;
-        timestamp: number;
-        request: VideoEvent;
-        type: MessageTypes;
-        data: any
-      } = JSON.parse(e.data);
-
-      console.log("Received socket response: ", response);
-
-      switch (response.type) {
-        case MessageTypes.RESPOND:
-        // fall through
-        case MessageTypes.DISPATCH:
-          switch (response.request) {
-            case VideoEvent.pause:
-            // fall through
-            case VideoEvent.seeking:
-              this.forcePause();
-              this.forceSeek(response.time);
-              this.maximumSeekPosition = response.time;
-              break;
-            case VideoEvent.play: {
-              const difference: number = this.getRealTime() - response.timestamp;
-              console.log(`Latency adjustment: ${difference}ms`);
-              if (response.time === 0) {
-                this.forceSeek(response.time);
-              } else {
-                this.forceSeek(response.time + (difference / 1000));
-              }
-              this.forcePlay()
-                .then(() => this.waitForBuffering())
-                .catch(console.warn)
-                .finally(() => {
-                  const bufferAdjustment = Date.now() - responseReceivedAt + 25;
-                  console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
-                  this.forceSeek(this.video.currentTime + (bufferAdjustment / 1000));
-                  this.maximumSeekPosition = Math.max(response.time, this.video.currentTime);
-                });
-              break;
-            }
-            default:
-              console.error(`Request response not found: ${response.request}`);
-          }
-          break;
-        case MessageTypes.TIME:
-          break;
-        case MessageTypes.DISCONNECT:
-          this.showNotification("The host disconnected. Please wait for them to reconnect.");
-          this.forcePause();
-          break;
-        default:
-          console.error(`Undefined message type detected: ${response.type}`);
-          return;
-      }
-    });
-
     this.syncTime();
+  }
+
+  protected onSocketMessage(message: MessageEvent<any>) {
+    super.onSocketMessage(message);
+
+    const responseReceivedAt = Date.now();
+
+    const response: {
+      time: number;
+      timestamp: number;
+      request: VideoEvent;
+      type: MessageTypes;
+      data: any
+    } = JSON.parse(message.data);
+
+    console.log("Received socket response: ", response);
+
+    switch (response.type) {
+      case MessageTypes.RESPOND:
+      // fall through
+      case MessageTypes.DISPATCH:
+        switch (response.request) {
+          case VideoEvent.pause:
+          // fall through
+          case VideoEvent.seeking:
+            this.forcePause();
+            this.forceSeek(response.time);
+            this.maximumSeekPosition = response.time;
+            break;
+          case VideoEvent.play: {
+            const difference: number = this.getRealTime() - response.timestamp;
+            console.log(`Latency adjustment: ${difference}ms`);
+            if (response.time === 0) {
+              this.forceSeek(response.time);
+            } else {
+              this.forceSeek(response.time + (difference / 1000));
+            }
+            this.forcePlay()
+              .then(() => this.waitForBuffering())
+              .catch(console.warn)
+              .finally(() => {
+                const bufferAdjustment = Date.now() - responseReceivedAt + 25;
+                console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
+                this.forceSeek(this.video.currentTime + (bufferAdjustment / 1000));
+                this.maximumSeekPosition = Math.max(response.time, this.video.currentTime);
+              });
+            break;
+          }
+          default:
+            console.error(`Request response not found: ${response.request}`);
+        }
+        break;
+      case MessageTypes.TIME:
+        break;
+      case MessageTypes.DISCONNECT:
+        this.showNotification("The host disconnected. Please wait for them to reconnect.");
+        this.forcePause();
+        break;
+      default:
+        console.error(`Undefined message type detected: ${response.type}`);
+        return;
+    }
   }
 
   protected reconnect() {
