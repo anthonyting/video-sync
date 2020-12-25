@@ -15,7 +15,7 @@ module.exports = env => /** @type {import('webpack').Configuration} */ ({
     sender: path.resolve(__dirname, 'frontend/js/stream-sender.ts'),
     style: path.resolve(__dirname, 'frontend/css/style.css')
   },
-  devtool: env.NODE_ENV === 'production' ? 'source-map' : 'eval-cheap-module-source-map',
+  devtool: env.NODE_ENV === 'production' ? false : 'eval-cheap-module-source-map',
   module: {
     rules: [{
         test: /\.css$/,
