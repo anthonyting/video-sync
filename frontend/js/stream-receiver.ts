@@ -20,7 +20,7 @@ class VideoReceiverController extends VideoController {
       }
     });
 
-    video.addEventListener(VideoEvent.seeked, () => {
+    this.setVideoEvent(VideoEvent.seeked, () => {
       if (video.currentTime - 0.5 > this.maximumSeekPosition) {
         console.log("User seeked manually");
         this.showNotification("Seeking is disabled");
@@ -38,7 +38,10 @@ class VideoReceiverController extends VideoController {
 
     this.setVideoEvent(VideoEvent.pause, () => {
       console.log("User paused manually");
+      this.showNotification("Click play again to catch up automatically");
       this.setVideoEvent(VideoEvent.play, () => {
+        this.showNotification("Reconnecting...");
+        this.disableVideoInteraction();
         this.reconnect();
       });
     });
@@ -97,6 +100,7 @@ class VideoReceiverController extends VideoController {
                 console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
                 this.forceSeek(this.video.currentTime + (bufferAdjustment / 1000));
                 this.maximumSeekPosition = Math.max(response.time, this.video.currentTime);
+                this.enableVideoInteraction();
               });
             break;
           }

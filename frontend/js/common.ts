@@ -109,6 +109,14 @@ export abstract class VideoController {
     }
   }
 
+  protected enableVideoInteraction() {
+    this.video.removeAttribute('disabled');
+  }
+
+  protected disableVideoInteraction() {
+    this.video.setAttribute('disabled', '');
+  }
+
   private setupReconnectFallback() {
     this.socket.addEventListener('close', e => {
       console.warn(`Socket closed: ${e.code} ${e.reason}`);
