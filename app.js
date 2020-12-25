@@ -34,77 +34,6 @@ function sendTime(ws, requestReceivedAt, requestSentAt) {
 }
 
 /**
- * 
- * @param {import('ws')} ws 
- * @param {string} clientId 
- */
-function createStreamerSocket(ws, clientId) {
-  console.log("Creating host socket: " + clientId);
-
-  new KeepAlive({
-    ws
-  });
-
-  ws.on('message', msg => {
-    try {
-      const requestReceivedAt = Date.now();
-
-      let parsed;
-      try {
-        parsed = JSON.parse(msg);
-        if (!parsed || typeof parsed !== 'object') {
-          throw new Error("Streamer message not an object");
-        }
-      } catch (err) {
-        console.warn("Error parsing host message: ", err);
-        return;
-      }
-
-      switch (parsed.type) {
-        case MessageTypes.DISPATCH:
-          clients.forEach(({
-            socket
-          }) => {
-            socket.send(msg);
-          });
-          break;
-        case MessageTypes.RESPOND:
-          const client = clients.get(parsed.client);
-          if (client) {
-            const socket = client.socket;
-            if (socket) {
-              socket.send(msg);
-            } else {
-              console.warn(`Missing client for id: ${parsed.client}`);
-            }
-          }
-          break;
-        case MessageTypes.TIME:
-          sendTime(ws, requestReceivedAt, parsed.timestamp);
-          break;
-        default:
-          console.warn(`Missing host message request type: ${parsed.request}`);
-      }
-    } catch (err) {
-      console.error("Error parsing message: ", msg, err);
-    }
-  });
-
-  ws.on('close', e => {
-    console.log("Closing host socket");
-    clients.forEach(({
-      socket
-    }) => {
-      socket.send(JSON.stringify({
-        type: MessageTypes.DISCONNECT,
-        timestamp: Date.now()
-      }));
-    });
-    // allow users to control stream themselves then?
-  });
-}
-
-/**
  * @enum
  */
 const MessageTypes = {
@@ -125,8 +54,83 @@ class StreamerSocket {
     this.host = null;
   }
 
-  setStreamer(ws) {
+  setStreamer(ws, sessionID) {
+    if (this.host) {
+      this.close();
+    }
+
     this.host = ws;
+    console.log("Creating host socket: " + sessionID);
+
+    new KeepAlive({
+      ws
+    });
+
+    clients.forEach(({socket}) => {
+      socket.send(JSON.stringify({
+        type: MessageTypes.CONNECT,
+        timestamp: Date.now()
+      }));
+    });
+
+    ws.on('message', msg => {
+      try {
+        const requestReceivedAt = Date.now();
+
+        let parsed;
+        try {
+          parsed = JSON.parse(msg);
+          if (!parsed || typeof parsed !== 'object') {
+            throw new Error("Streamer message not an object");
+          }
+        } catch (err) {
+          console.warn("Error parsing host message: ", err);
+          return;
+        }
+
+        switch (parsed.type) {
+          case MessageTypes.DISPATCH:
+            clients.forEach(({
+              socket
+            }) => {
+              socket.send(msg);
+            });
+            break;
+          case MessageTypes.RESPOND:
+            const client = clients.get(parsed.client);
+            if (client) {
+              const socket = client.socket;
+              if (socket) {
+                socket.send(msg);
+              } else {
+                console.warn(`Missing client for id: ${parsed.client}`);
+              }
+            }
+            break;
+          case MessageTypes.TIME:
+            sendTime(ws, requestReceivedAt, parsed.timestamp);
+            break;
+          default:
+            console.warn(`Missing host message request type: ${parsed.request}`);
+        }
+      } catch (err) {
+        console.error("Error parsing message: ", msg, err);
+      }
+    });
+
+    ws.on('close', e => {
+      console.log("Closing host socket");
+      clients.forEach(({
+        socket
+      }) => {
+        socket.send(JSON.stringify({
+          type: MessageTypes.DISCONNECT,
+          timestamp: Date.now()
+        }));
+      });
+      // allow users to control stream themselves then?
+    });
+
     for (let i = 0; i < this.queuedMessages.length; i++) {
       this.host.send(JSON.stringify(this.queuedMessages[i]));
     }
@@ -147,6 +151,7 @@ class StreamerSocket {
 
   close() {
     this.host.close();
+    this.host = null;
   }
 }
 
@@ -196,7 +201,6 @@ function initApp(app, server) {
     });
   });
 
-  let idGen = 0;
   let streamerSocket = new StreamerSocket();
   const streamerMsgs = [];
   wss.on('connection', (ws, req) => {
@@ -262,21 +266,12 @@ function initApp(app, server) {
           }
         });
       } else if (req.session.hasStreamAccess) {
-        if (!streamerSocket.isSet()) {
-          streamerSocket.setStreamer(ws);
-          createStreamerSocket(ws, sessionID, streamerMsgs);
-        } else {
-          streamerSocket.close();
-          streamerSocket.setStreamer(ws);
-          createStreamerSocket(ws, sessionID, streamerMsgs);
-        }
+        streamerSocket.setStreamer(ws, sessionID);
       } else {
         return ws.close(1008, "Unauthorized");
       }
 
       new KeepAlive({
-        clients,
-        clientId: sessionID,
         ws
       });
     });

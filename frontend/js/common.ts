@@ -113,7 +113,7 @@ export abstract class VideoController {
     this.socket.addEventListener('close', e => {
       console.warn(`Socket closed: ${e.code} ${e.reason}`);
       this.showNotification("Your server connection has disconnected");
-      const MAX_ATTEMPTS = 10;
+      const MAX_ATTEMPTS = 20;
       const TIME_BETWEEN_ATTEMPTS = 5000; // ms
       let attempts = 0;
       const retryInterval = setInterval(() => {
