@@ -44,7 +44,7 @@ export abstract class VideoController {
   protected callbacks: VideoCallbacks = {};
   /** Time delta between server and host in ms */
   protected serverTimeDelta: number = null;
-  private toast: Bootstrap.Toast;
+  private toast: bootstrap.Toast;
   private toastElement: HTMLElement;
   private doneBuffering: Promise<void> = null;
   private doneBufferingResolver: () => any;
@@ -57,7 +57,7 @@ export abstract class VideoController {
     this.socket = socket;
     this.toastElement = toast;
     // @ts-ignore bootstrap types not up to date
-    this.toast = new Bootstrap.Toast(toast, {
+    this.toast = new bootstrap.Toast(toast, {
       delay: 2000
     });
 
