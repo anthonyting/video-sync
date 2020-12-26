@@ -1,5 +1,8 @@
 extends layout
 
+block scripts
+  script(src=BASEURL + '/dist/monitor.bundle.js')
+
 block content
   main.container-fluid.d-flex.flex-column.text-white
     table.table.table-dark
@@ -8,6 +11,7 @@ block content
           th(scope='col') Session ID
           th(scope='col') IPs
           th(scope='col') Connected
+          th(scope='col')
       tbody
         each [key, value] of clients
           tr
@@ -16,3 +20,5 @@ block content
               each object in value
                 =object.ip + ","
             th=value.length
+            th
+              button.btn.btn-danger.terminate(type="submit" data-id=key) Terminate

@@ -13,7 +13,8 @@ module.exports = env => /** @type {import('webpack').Configuration} */ ({
   entry: {
     receiver: path.resolve(__dirname, 'frontend/js/stream-receiver.ts'),
     sender: path.resolve(__dirname, 'frontend/js/stream-sender.ts'),
-    style: path.resolve(__dirname, 'frontend/css/style.css')
+    style: path.resolve(__dirname, 'frontend/css/style.css'),
+    monitor: path.resolve(__dirname, 'frontend/js/monitor.ts')
   },
   devtool: env.NODE_ENV === 'production' ? false : 'eval-cheap-module-source-map',
   module: {
@@ -43,7 +44,8 @@ module.exports = env => /** @type {import('webpack').Configuration} */ ({
   plugins: [
     new CleanWebpackPlugin(),
     new webpack.DefinePlugin({
-      WEBSOCKET_SERVER: JSON.stringify(env.NODE_ENV === 'production' ? 'wss://anthonyting.xyz/abcde' : 'ws://localhost:3000')
+      WEBSOCKET_SERVER: JSON.stringify(env.NODE_ENV === 'production' ? 'wss://anthonyting.xyz/abcde' : 'ws://localhost:3000'),
+      BASEURL: JSON.stringify('/abcde')
     }),
     new MiniCssExtractPlugin({
       filename: '[name].css'

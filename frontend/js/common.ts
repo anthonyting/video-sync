@@ -52,6 +52,26 @@ const enum SocketEvent {
   error = 'error'
 }
 
+export class Notification {
+  private toast: bootstrap.Toast;
+  private toastElement: HTMLElement;
+  private toastBody: HTMLElement;
+  constructor(toastElement: HTMLElement) {
+    this.toastElement = toastElement;
+    this.toastBody = this.toastElement.querySelector('.toast-body');
+    // @ts-ignore bootstrap types not up to date
+    this.toast = new bootstrap.Toast(toast, {
+      delay: 2000
+    });
+  }
+
+  show(message: string) {
+    // @ts-ignore
+    this.toast.show();
+    this.toastBody.textContent = message;
+  }
+}
+
 export abstract class VideoController {
   protected video: HTMLVideoElement;
   protected socket: WebSocket;
@@ -59,23 +79,17 @@ export abstract class VideoController {
   private socketCallbacks: SocketCallbacks = {};
   /** Time delta between server and host in ms */
   protected serverTimeDelta: number = null;
-  private toast: bootstrap.Toast;
-  private toastElement: HTMLElement;
   private doneBuffering: Promise<void> = null;
   private doneBufferingResolver: () => any;
   private isVideoPlaying: boolean = false;
   private static readonly storagePrefix: string = "VideoController_";
   private isViewer: boolean;
-  constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement, isViewer: boolean) {
+  private notification: Notification;
+  constructor(video: HTMLVideoElement, socket: WebSocket, toastElement: HTMLElement, isViewer: boolean) {
     this.isViewer = isViewer;
     this.video = video;
     this.socket = socket;
-    this.toastElement = toast;
-    // @ts-ignore bootstrap types not up to date
-    this.toast = new bootstrap.Toast(toast, {
-      delay: 2000
-    });
-
+    this.notification = new Notification(toastElement);
     window.addEventListener('offline', e => {
       this.showNotification("Your internet disconnected");
     });
@@ -173,9 +187,7 @@ export abstract class VideoController {
   }
 
   protected showNotification(message: string) {
-    // @ts-ignore
-    this.toast.show();
-    this.toastElement.querySelector('.toast-body').textContent = message;
+    this.notification.show(message);
   }
 
   protected assignTimeDelta(requestSentAt: number, requestReceivedAt: number, responseSentAt: number, responseReceivedAt: number): void {

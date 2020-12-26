@@ -40,4 +40,40 @@ router.get('/monitor', basicAuth({
   });
 });
 
+router.post('/terminate/:id', (req, res, next) => {
+  if (req.session.hasStreamAccess) {
+    const id = req.params.id;
+    if (id) {
+      const clientSessions = clients.get(id);
+      const terminatePromises = [];
+      clientSessions.forEach(value => {
+        value.socket.send(JSON.stringify({
+          type: 'terminate',
+          timestamp: Date.now()
+        }));
+        terminatePromises.push(new Promise(resolve => {
+          setTimeout(() => {
+            value.socket.close(1008, "Terminated");
+            resolve();
+          }, 1000);
+        }));
+      });
+
+      Promise.all(terminatePromises)
+        .then(() => {
+          clients.delete(id);
+          res.end();
+        })
+        .catch(err => {
+          console.error(err);
+          res.status(500).end();
+        });
+    } else {
+      res.status(400).end();
+    }
+  } else {
+    res.status(401).end();
+  }
+});
+
 module.exports = router;
