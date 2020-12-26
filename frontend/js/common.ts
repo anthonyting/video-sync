@@ -61,14 +61,25 @@ export class Notification {
     this.toastBody = this.toastElement.querySelector('.toast-body');
     // @ts-ignore bootstrap types not up to date
     this.toast = new bootstrap.Toast(toast, {
-      delay: 2000
+      autohide: false
     });
   }
 
-  show(message: string) {
+  /**
+   * 
+   * @param message 
+   * @param delay if < 0, then do not hide
+   */
+  show(message: string, delay = 2500) {
     // @ts-ignore
     this.toast.show();
     this.toastBody.textContent = message;
+    if (delay > 0) {
+      setTimeout(() => {
+        // @ts-ignore
+        this.toast.hide();
+      }, delay);
+    }
   }
 }
 
@@ -173,7 +184,7 @@ export abstract class VideoController {
               console.warn(`Error connecting to socket. Attempt ${attempts}/${MAX_ATTEMPTS}.`, err);
             });
         } else {
-          this.showNotification(`Failed to connect to the server after ${MAX_ATTEMPTS} attempts.`);
+          this.showNotification(`Failed to connect to the server after ${MAX_ATTEMPTS} attempts.`, -1);
           clearInterval(retryInterval);
         }
       }, TIME_BETWEEN_ATTEMPTS);
@@ -186,8 +197,8 @@ export abstract class VideoController {
     return this.doneBuffering;
   }
 
-  protected showNotification(message: string) {
-    this.notification.show(message);
+  protected showNotification(message: string, delay = 2500) {
+    this.notification.show(message, delay);
   }
 
   protected assignTimeDelta(requestSentAt: number, requestReceivedAt: number, responseSentAt: number, responseReceivedAt: number): void {

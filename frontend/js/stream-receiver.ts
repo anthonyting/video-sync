@@ -122,7 +122,7 @@ class VideoReceiverController extends VideoController {
         }
         break;
       case MessageTypes.TERMINATE:
-        this.showNotification("Your connection has been closed");
+        this.showNotification("Your connection has been terminated by the host", -1);
         this.forcePause();
         this.disableVideoInteraction();
         this.forceCloseSocket();

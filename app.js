@@ -206,7 +206,7 @@ function initApp(app, server) {
   // error handler
   app.use((err, req, res, next) => {
     err.status = Number(err.status) || 500;
-    res.locals.message = err.expose ? err.message : http.STATUS_CODES[err.status];
+    res.locals.error = err.expose ? err.message : http.STATUS_CODES[err.status];
 
     if (400 <= err.status < 500) {
       console.warn(err.message);
