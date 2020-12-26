@@ -45,6 +45,10 @@ router.post('/terminate/:id', (req, res, next) => {
     const id = req.params.id;
     if (id) {
       const clientSessions = clients.get(id);
+      if (!clientSessions) {
+        res.status(400).end();
+      }
+
       const terminatePromises = [];
       clientSessions.forEach(value => {
         value.socket.send(JSON.stringify({
