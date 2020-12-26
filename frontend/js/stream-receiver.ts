@@ -23,7 +23,6 @@ class VideoReceiverController extends VideoController {
     this.video.addEventListener(VideoEvent.seeked, () => {
       if (video.currentTime - 1 >= this.maximumSeekPosition) {
         console.log("User seeked manually");
-        this.showNotification("Seeking is disabled");
         this.forceSeek(this.maximumSeekPosition);
         this.reconnect();
       }
@@ -80,9 +79,9 @@ class VideoReceiverController extends VideoController {
           case VideoEvent.pause:
           // fall through
           case VideoEvent.seeking:
+            this.maximumSeekPosition = response.time;
             this.forcePause();
             this.forceSeek(response.time);
-            this.maximumSeekPosition = response.time;
             break;
           case VideoEvent.play: {
             const difference: number = this.getRealTime() - response.timestamp;
@@ -98,8 +97,9 @@ class VideoReceiverController extends VideoController {
               .finally(() => {
                 const bufferAdjustment = Date.now() - responseReceivedAt + 25;
                 console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
-                this.forceSeek(this.video.currentTime + (bufferAdjustment / 1000));
                 this.maximumSeekPosition = Math.max(response.time, this.video.currentTime);
+                this.forceSeek(this.video.currentTime + (bufferAdjustment / 1000));
+                this.maximumSeekPosition = Math.max(this.maximumSeekPosition, this.video.currentTime);
                 this.enableVideoInteraction();
               });
             break;
