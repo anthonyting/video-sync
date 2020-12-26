@@ -147,15 +147,23 @@ window.addEventListener('load', () => {
   const resetPlayer = () => video.currentTime = 0;
 
   video.addEventListener(VideoEvent.play, video.pause);
-  video.addEventListener(VideoEvent.seeked, resetPlayer)
-  setupWebSocket(true)
-    .then(socket => {
-      video.removeEventListener(VideoEvent.play, video.pause);
-      video.removeEventListener(VideoEvent.seeked, resetPlayer);
+  video.addEventListener(VideoEvent.seeked, resetPlayer);
+  const videoLoaded = new Promise<void>(resolve => {
+    const onLoadedData = () => {
+      resolve();
+      video.removeEventListener('loadeddata', onLoadedData);
+    }
+    video.addEventListener('loadeddata', onLoadedData);
+  });
+  Promise.all([
+    setupWebSocket(true),
+    videoLoaded
+  ]).then(([socket]) => {
+    video.removeEventListener(VideoEvent.play, video.pause);
+    video.removeEventListener(VideoEvent.seeked, resetPlayer);
 
-      const toast = document.getElementById('toast');
-      new VideoReceiverController(video, socket, toast);
-      video.removeAttribute('disabled');
-    })
-    .catch(console.error);
+    const toast = document.getElementById('toast');
+    new VideoReceiverController(video, socket, toast);
+    video.removeAttribute('disabled');
+  }).catch(console.error);
 });

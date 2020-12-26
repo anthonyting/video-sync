@@ -241,7 +241,7 @@ export abstract class VideoController {
     });
   }
 
-  protected static storeData(key: string, value: string) {
+  public static setData(key: string, value: string) {
     return window.localStorage.setItem(VideoController.storagePrefix + key, value);
   }
 

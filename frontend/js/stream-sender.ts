@@ -23,7 +23,7 @@ class VideoSenderController extends VideoController {
       const difference = Math.abs(video.currentTime - time);
       if (difference > maxDifference) {
         time = video.currentTime;
-        VideoController.storeData('time', time.toString());
+        VideoController.setData('time', time.toString());
       }
     });
 
@@ -107,7 +107,23 @@ class VideoSenderController extends VideoController {
 async function onLoad() {
   const continueContainer = document.getElementById('continueContainer');
 
-  const startTime = await new Promise<number>(resolve => {
+  continueContainer.classList.add('d-none');
+  const video: HTMLVideoElement = <HTMLVideoElement>document.getElementById("video");
+
+  await new Promise<void>(resolve => {
+    const onLoadedData = () => {
+      resolve();
+      video.removeEventListener('loadeddata', onLoadedData);
+    }
+    video.addEventListener('loadeddata', onLoadedData);
+  });
+
+  const [startTime, socket] = await Promise.all([new Promise<number>(resolve => {
+    const lastVideoDuration = Number(VideoController.getData("duration"));
+    if (lastVideoDuration !== video.duration) {
+      // basic check for video changing
+      return resolve(0);
+    }
     const lastSavedTime = Number(VideoController.getData("time"));
     if (lastSavedTime) {
       continueContainer.classList.remove('d-none');
@@ -125,11 +141,11 @@ async function onLoad() {
     } else {
       resolve(0);
     }
-  });
+  }), setupWebSocket(false)])
 
   continueContainer.classList.add('d-none');
-  const video: HTMLVideoElement = <HTMLVideoElement>document.getElementById("video");
-  const socket = await setupWebSocket(false);
+  VideoController.setData('duration', video.duration.toString());
+
   const toast = document.getElementById('toast');
   new VideoSenderController(video, socket, toast, startTime);
   video.removeAttribute('disabled');
