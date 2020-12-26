@@ -13,15 +13,15 @@ class VideoReceiverController extends VideoController {
 
     this.setVideoEvent(VideoEvent.seeking, () => {
       console.log("User seeking manually");
-      if (video.currentTime - 0.5 > this.maximumSeekPosition) {
+      if (video.currentTime - 1 > this.maximumSeekPosition) {
         this.showNotification("Seeking is disabled");
         this.forceSeek(this.maximumSeekPosition);
         this.reconnect();
       }
     });
 
-    this.setVideoEvent(VideoEvent.seeked, () => {
-      if (video.currentTime - 0.5 > this.maximumSeekPosition) {
+    this.video.addEventListener(VideoEvent.seeked, () => {
+      if (video.currentTime - 1 >= this.maximumSeekPosition) {
         console.log("User seeked manually");
         this.showNotification("Seeking is disabled");
         this.forceSeek(this.maximumSeekPosition);
