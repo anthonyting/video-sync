@@ -24,6 +24,7 @@ export const enum MessageTypes {
   DISPATCH = 'dispatch',
   RESPOND = 'respond',
   TIME = 'time',
+  TERMINATE = 'terminate'
 };
 
 export const enum VideoEvent {
@@ -38,10 +39,24 @@ export const enum VideoEvent {
 export type VideoCallbacks = {
   [name in VideoEvent]?: (ev: Event) => any;
 };
+
+type SocketCallbacks = {
+  close?: (ev: CloseEvent) => any,
+  open?: (ev: Event) => any,
+  error?: (ev: Event) => any
+}
+
+const enum SocketEvent {
+  close = 'close',
+  open = 'open',
+  error = 'error'
+}
+
 export abstract class VideoController {
   protected video: HTMLVideoElement;
   protected socket: WebSocket;
   protected callbacks: VideoCallbacks = {};
+  private socketCallbacks: SocketCallbacks = {};
   /** Time delta between server and host in ms */
   protected serverTimeDelta: number = null;
   private toast: bootstrap.Toast;
@@ -117,8 +132,14 @@ export abstract class VideoController {
     this.video.setAttribute('disabled', '');
   }
 
+  protected forceCloseSocket() {
+    console.log("Socket forcibly closed");
+    this.socket.removeEventListener(SocketEvent.close, this.socketCallbacks.close);
+    this.socket.close();
+  }
+
   private setupReconnectFallback() {
-    this.socket.addEventListener('close', e => {
+    this.socketCallbacks.close = e => {
       console.warn(`Socket closed: ${e.code} ${e.reason}`);
       this.showNotification("Your server connection has disconnected");
       const MAX_ATTEMPTS = 20;
@@ -142,7 +163,9 @@ export abstract class VideoController {
           clearInterval(retryInterval);
         }
       }, TIME_BETWEEN_ATTEMPTS);
-    });
+    };
+
+    this.socket.addEventListener(SocketEvent.close, this.socketCallbacks.close);
   }
 
   protected waitForBuffering() {

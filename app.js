@@ -6,13 +6,14 @@ const express = require('express');
 const WebSocket = require('ws');
 const sessionParser = require('./session');
 const url = require('url');
+const session = require('express-session');
 
 const wss = new WebSocket.Server({
   noServer: true
 });
 
 /**
- * @type {Map<string, {socket: import('ws'), interval: number}>} clients
+ * @type {Map<string, [{socket: import('ws'), keepalive: KeepAlive}]>} clients
  */
 const clients = new Map();
 
@@ -43,6 +44,7 @@ const MessageTypes = {
   DISPATCH: 'dispatch',
   RESPOND: 'respond',
   TIME: 'time',
+  TERMINATE: 'terminate'
 };
 
 class StreamerSocket {
@@ -52,6 +54,8 @@ class StreamerSocket {
     this.queuedMessages = [];
     /** @type {import('ws')} */
     this.host = null;
+    /** @type {KeepAlive} */
+    this.keepalive = null;
   }
 
   setStreamer(ws, sessionID) {
@@ -62,15 +66,17 @@ class StreamerSocket {
     this.host = ws;
     console.log("Creating host socket: " + sessionID);
 
-    new KeepAlive({
+    this.keepalive = new KeepAlive({
       ws
     });
 
-    clients.forEach(({socket}) => {
-      socket.send(JSON.stringify({
-        type: MessageTypes.CONNECT,
-        timestamp: Date.now()
-      }));
+    clients.forEach(clientSessions => {
+      for (let i = 0, n = clientSessions.length; i < n; i++) {
+        clientSessions[i].socket.send(JSON.stringify({
+          type: MessageTypes.CONNECT,
+          timestamp: Date.now()
+        }));
+      }
     });
 
     ws.on('message', msg => {
@@ -90,23 +96,32 @@ class StreamerSocket {
 
         switch (parsed.type) {
           case MessageTypes.DISPATCH:
-            clients.forEach(({
-              socket
-            }) => {
-              socket.send(msg);
+            clients.forEach(clientSessions => {
+              for (let i = 0, n = clientSessions.length; i < n; i++) {
+                clientSessions[i].socket.send(msg);
+              }
             });
             break;
-          case MessageTypes.RESPOND:
-            const client = clients.get(parsed.client);
-            if (client) {
-              const socket = client.socket;
-              if (socket) {
-                socket.send(msg);
-              } else {
-                console.warn(`Missing client for id: ${parsed.client}`);
+          case MessageTypes.RESPOND: {
+            const clientSessions = clients.get(parsed.client);
+            if (clientSessions) {
+              for (let i = 0, n = clientSessions.length; i < n; i++) {
+                const socket = clientSessions[i].socket;
+                if (socket) {
+                  if (socket.OPEN) {
+                    socket.send(msg);
+                  } else {
+                    console.warn(`Attempting to send a message to a socket with readyState: ${socket.readyState}`)
+                  }
+                } else {
+                  console.warn(`Missing socket for id: ${parsed.client}`);
+                }
               }
+            } else {
+              console.warn(`Missing client sessions for: ${parsed.client}`);
             }
             break;
+          }
           case MessageTypes.TIME:
             sendTime(ws, requestReceivedAt, parsed.timestamp);
             break;
@@ -120,13 +135,13 @@ class StreamerSocket {
 
     ws.on('close', e => {
       console.log("Closing host socket");
-      clients.forEach(({
-        socket
-      }) => {
-        socket.send(JSON.stringify({
-          type: MessageTypes.DISCONNECT,
-          timestamp: Date.now()
-        }));
+      clients.forEach(clientSessions => {
+        for (let i = 0, n = clientSessions.length; i < n; i++) {
+          clientSessions[i].socket.send(JSON.stringify({
+            type: MessageTypes.DISCONNECT,
+            timestamp: Date.now()
+          }));
+        }
       });
       // allow users to control stream themselves then?
     });
@@ -152,6 +167,7 @@ class StreamerSocket {
   close() {
     this.host.close();
     this.host = null;
+    this.keepalive = null;
   }
 }
 
@@ -206,7 +222,6 @@ function initApp(app, server) {
   });
 
   let streamerSocket = new StreamerSocket();
-  const streamerMsgs = [];
   wss.on('connection', (ws, req) => {
     sessionParser(req, {}, () => {
       if (!req.session) {
@@ -219,14 +234,6 @@ function initApp(app, server) {
       const sessionID = req.sessionID;
       if (isViewer && req.session.hasAccess) {
         console.log(`Viewer connected: ${sessionID}`);
-
-        clients.set(sessionID, {
-          socket: ws
-        });
-        streamerSocket.send({
-          type: MessageTypes.CONNECT,
-          id: sessionID
-        });
         ws.on('close', (code, reason) => {
           streamerSocket.send({
             type: MessageTypes.DISCONNECT,
@@ -235,7 +242,11 @@ function initApp(app, server) {
           if (code === 1006) {
             console.log(`${sessionID} disconnected abrubtly: ${reason}`);
           } else {
-            clients.delete(sessionID);
+            const sessions = clients.get(sessionID);
+            sessions.pop();
+            if (sessions.length === 0) {
+              clients.delete(sessionID);
+            }
           }
         });
         ws.on('message', msg => {
@@ -269,15 +280,33 @@ function initApp(app, server) {
             console.error("Error parsing message: ", msg, err);
           }
         });
+
+        const clientSessions = clients.get(sessionID);
+        if (!clientSessions) {
+          clients.set(sessionID, [{
+            socket: ws,
+            keepalive: new KeepAlive({
+              ws
+            })
+          }]);
+        } else {
+          clientSessions.push({
+            socket: ws,
+            keepalive: new KeepAlive({
+              ws
+            })
+          });
+        }
+        streamerSocket.send({
+          type: MessageTypes.CONNECT,
+          id: sessionID
+        });
       } else if (req.session.hasStreamAccess) {
+        console.log(`Connecting host: ${sessionID}`);
         streamerSocket.setStreamer(ws, sessionID);
       } else {
         return ws.close(1008, "Unauthorized");
       }
-
-      new KeepAlive({
-        ws
-      });
     });
   });
 }

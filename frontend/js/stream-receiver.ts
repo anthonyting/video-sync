@@ -121,6 +121,12 @@ class VideoReceiverController extends VideoController {
           this.hostDisconnected = false;
         }
         break;
+      case MessageTypes.TERMINATE:
+        this.showNotification("Your connection has been closed");
+        this.forcePause();
+        this.disableVideoInteraction();
+        this.forceCloseSocket();
+        break;
       default:
         console.error(`Undefined message type detected: ${response.type}`);
         return;
