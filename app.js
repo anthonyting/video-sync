@@ -7,8 +7,11 @@ const WebSocket = require('ws');
 const sessionParser = require('./session');
 const url = require('url');
 const {
-  BASEURL, SITE_URL
+  BASEURL,
+  SITE_URL
 } = require('./config');
+
+const http = require('http');
 
 const wss = new WebSocket.Server({
   noServer: true
@@ -196,38 +199,42 @@ function initApp(app, server) {
   });
   app.use(BASEURL, indexRouter);
 
-  // catch 404 and forward to error handler
-  app.use(function (req, res, next) {
+  app.use((_, _, next) => {
     next(createError(404));
   });
 
   // error handler
-  app.use(function (err, req, res, next) {
-    // set locals, only providing error in development
-    res.locals.message = err.message;
-    res.locals.error = req.app.get('env') === 'development' ? err : {};
+  app.use((err, req, res, next) => {
+    err.status = Number(err.status) || 500;
+    res.locals.message = err.expose ? err.message : http.STATUS_CODES[err.status];
 
-    // render the error page
-    res.status(err.status || 500);
-    res.render('error');
+    if (400 <= err.status < 500) {
+      console.warn(err.message);
+    } else {
+      console.error(err);
+    }
+
+    res.status(err.status);
+
+    if (res.locals.jsonError) {
+      res.json({
+        error: err.message
+      });
+    } else {
+      res.render('error');
+    }
   });
 
   server.on('upgrade', (req, socket, head) => {
-    sessionParser(req, {}, () => {
-      if (!req.session || !req.session.hasAccess) {
-        socket.end();
-      } else {
-        wss.handleUpgrade(req, socket, head, ws => {
-          wss.emit('connection', ws, req);
-        });
-      }
+    wss.handleUpgrade(req, socket, head, ws => {
+      wss.emit('connection', ws, req);
     });
   });
 
   let streamerSocket = new StreamerSocket();
   wss.on('connection', (ws, req) => {
     sessionParser(req, {}, () => {
-      if (!req.session) {
+      if (!req.session || !req.session.hasAccess) {
         return ws.close(1008, "Unauthorized");
       }
 

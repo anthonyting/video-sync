@@ -5,6 +5,7 @@ const config = require('../config');
 const basicAuth = require('express-basic-auth');
 
 const clients = require("../app").clients;
+const createHttpError = require('http-errors');
 
 /* GET home page. */
 router.get('/', basicAuth({
@@ -41,12 +42,14 @@ router.get('/monitor', basicAuth({
 });
 
 router.post('/terminate/:id', (req, res, next) => {
+  res.locals.jsonError = true;
+
   if (req.session.hasStreamAccess) {
     const id = req.params.id;
     if (id) {
       const clientSessions = clients.get(id);
       if (!clientSessions) {
-        res.status(400).end();
+        return next(createHttpError(400));
       }
 
       const terminatePromises = [];
@@ -68,15 +71,12 @@ router.post('/terminate/:id', (req, res, next) => {
           clients.delete(id);
           res.end();
         })
-        .catch(err => {
-          console.error(err);
-          res.status(500).end();
-        });
+        .catch(next);
     } else {
-      res.status(400).end();
+      next(createHttpError(400));
     }
   } else {
-    res.status(401).end();
+    next(createHttpError(401));
   }
 });
 
