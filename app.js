@@ -199,7 +199,7 @@ function initApp(app, server) {
   });
   app.use(BASEURL, indexRouter);
 
-  app.use((_, _, next) => {
+  app.use((req, res, next) => {
     next(createError(404));
   });
 
