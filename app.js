@@ -6,7 +6,9 @@ const express = require('express');
 const WebSocket = require('ws');
 const sessionParser = require('./session');
 const url = require('url');
-const session = require('express-session');
+const {
+  BASEURL, SITE_URL
+} = require('./config');
 
 const wss = new WebSocket.Server({
   noServer: true
@@ -182,16 +184,17 @@ function initApp(app, server) {
   app.use(express.urlencoded({
     extended: false
   }));
-  app.use('/abcde', express.static(path.join(__dirname, 'public')));
+  app.use(BASEURL, express.static(path.join(__dirname, 'public')));
   app.use(sessionParser);
 
   app.set('trust proxy', 1);
 
   app.use((req, res, next) => {
-    res.locals.BASEURL = '/abcde';
+    res.locals.BASEURL = BASEURL;
+    res.locals.SITE_URL = SITE_URL;
     next();
   });
-  app.use('/abcde', indexRouter);
+  app.use(BASEURL, indexRouter);
 
   // catch 404 and forward to error handler
   app.use(function (req, res, next) {

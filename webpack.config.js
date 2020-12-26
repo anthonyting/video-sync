@@ -7,6 +7,8 @@ const TerserPlugin = require('terser-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const IgnoreEmitPlugin = require('ignore-emit-webpack-plugin');
+require('dotenv').config();
+const config = require('./config');
 
 module.exports = env => /** @type {import('webpack').Configuration} */ ({
   mode: env.NODE_ENV === 'production' ? 'production' : 'development',
@@ -44,8 +46,8 @@ module.exports = env => /** @type {import('webpack').Configuration} */ ({
   plugins: [
     new CleanWebpackPlugin(),
     new webpack.DefinePlugin({
-      WEBSOCKET_SERVER: JSON.stringify(env.NODE_ENV === 'production' ? 'wss://anthonyting.xyz/abcde' : 'ws://localhost:3000'),
-      BASEURL: JSON.stringify('/abcde')
+      WEBSOCKET_SERVER: JSON.stringify(env.NODE_ENV === 'production' ? 'wss://' + config.SITE_URL + config.BASEURL : 'ws://localhost:3000'),
+      BASEURL: JSON.stringify(config.BASEURL)
     }),
     new MiniCssExtractPlugin({
       filename: '[name].css'

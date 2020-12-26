@@ -6,7 +6,10 @@ const admin_password = process.env.admin_password;
 
 const session_secret = process.env.session_secret;
 
-if ([general_username, general_password, admin_username, admin_password, session_secret].includes(undefined)) {
+const BASEURL = process.env.BASEURL;
+const SITE_URL = process.env.SITE_URL;
+
+if ([general_username, general_password, admin_username, admin_password, session_secret, BASEURL, SITE_URL].includes(undefined)) {
   console.warn("Some environment variables are undefined.");
 }
 
@@ -21,5 +24,7 @@ module.exports = {
     general: general,
     admin: admin
   },
-  session_secret
+  session_secret,
+  BASEURL,
+  SITE_URL
 }
