@@ -1,6 +1,18 @@
 extends layout
 
 block content
-  -var keys = Object.keys(clients)
-  h1="keys: " + keys
-  h1="count: " + keys.length
+  main.container-fluid.d-flex.flex-column.text-white
+    table.table.table-dark
+      thead
+        tr
+          th(scope='col') Session ID
+          th(scope='col') IPs
+          th(scope='col') Connected
+      tbody
+        each [key, value] of clients
+          tr
+            th(scope='row')=key
+            th
+              each object in value
+                =object.ip + ","
+            th=value.length

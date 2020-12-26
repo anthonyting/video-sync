@@ -282,19 +282,22 @@ function initApp(app, server) {
         });
 
         const clientSessions = clients.get(sessionID);
+        const ip = (req.headers['x-forwarded-for'] || req.connection.remoteAddress || '').split(',')[0].trim();
         if (!clientSessions) {
           clients.set(sessionID, [{
             socket: ws,
             keepalive: new KeepAlive({
               ws
-            })
+            }),
+            ip: ip
           }]);
         } else {
           clientSessions.push({
             socket: ws,
             keepalive: new KeepAlive({
               ws
-            })
+            }),
+            ip: ip
           });
         }
         streamerSocket.send({
