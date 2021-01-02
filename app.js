@@ -250,13 +250,12 @@ function initApp(app, server) {
             id: sessionID
           });
           if (code === 1006) {
-            console.log(`${sessionID} disconnected abrubtly: ${reason}`);
-          } else {
-            const sessions = clients.get(sessionID);
-            sessions.pop();
-            if (sessions.length === 0) {
-              clients.delete(sessionID);
-            }
+            console.log(`${sessionID} disconnected abrubtly: ${reason || code}`);
+          }
+          const sessions = clients.get(sessionID);
+          sessions.pop();
+          if (sessions.length === 0) {
+            clients.delete(sessionID);
           }
         });
         ws.on('message', msg => {
