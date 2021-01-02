@@ -81,6 +81,11 @@ export class Notification {
       }, delay);
     }
   }
+
+  hide() {
+    /** @ts-ignore */
+    this.toast.hide();
+  }
 }
 
 export abstract class VideoController {
@@ -197,6 +202,10 @@ export abstract class VideoController {
     return this.doneBuffering;
   }
 
+  protected hideNotification() {
+    this.notification.hide();
+  }
+
   protected showNotification(message: string, delay = 2500) {
     this.notification.show(message, delay);
   }
@@ -227,6 +236,7 @@ export abstract class VideoController {
 
   protected reconnect() {
     console.log("Playback reconnected");
+    this.showNotification("Connecting...");
   }
 
   protected setVideoEvent(type: VideoEvent, callback: (ev: Event) => any) {
@@ -250,7 +260,7 @@ export abstract class VideoController {
   protected forcePlay(): Promise<void> {
     console.log("Forcing play");
     this.video.removeEventListener(VideoEvent.play, this.callbacks.play);
-    return this.video.play().catch(console.error).finally(() => {
+    return this.video.play().finally(() => {
       this.video.addEventListener(VideoEvent.play, this.callbacks.play);
     });
   }

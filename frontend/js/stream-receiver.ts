@@ -8,7 +8,8 @@ import {
 class VideoReceiverController extends VideoController {
   private maximumSeekPosition: number = 0;
   private hostDisconnected: boolean = false;
-  private attemptedToPlayCount: number = 0;
+  /** Used when browser does not allow autoplay */
+  private reconnectOnPlay: boolean = false;
   constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement) {
     super(video, socket, toast, true);
 
@@ -30,13 +31,14 @@ class VideoReceiverController extends VideoController {
     });
 
     this.setVideoEvent(VideoEvent.play, () => {
-      if (this.attemptedToPlayCount > 1) {
+      if (this.reconnectOnPlay) {
+        this.reconnectOnPlay = false;
+        this.reconnect();
+      } else {
         console.log("User attempting to play manually");
         this.forcePause();
         this.showNotification("Wait for the host to start the video");
         this.forceSeek(this.maximumSeekPosition);
-      } else {
-        this.attemptedToPlayCount++;
       }
     });
 
@@ -44,18 +46,16 @@ class VideoReceiverController extends VideoController {
       console.log("User paused manually");
       this.showNotification("Click play again to catch up automatically");
       this.setVideoEvent(VideoEvent.play, () => {
-        this.showNotification("Reconnecting...");
         this.disableVideoInteraction();
         this.reconnect();
       });
     });
 
     this.forcePlay().then(() => {
-      this.forcePause();
       this.reconnect();
     }).catch(err => {
       console.error(err);
-      this.showNotification(err.message);
+      this.reconnectOnPlay = true;
     });
 
     this.syncTime();
@@ -78,7 +78,8 @@ class VideoReceiverController extends VideoController {
 
     switch (response.type) {
       case MessageTypes.RESPOND:
-      // fall through
+        this.showNotification("Connected");
+        // fall through
       case MessageTypes.DISPATCH:
         switch (response.request) {
           case VideoEvent.pause:
