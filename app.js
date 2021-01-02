@@ -249,9 +249,7 @@ function initApp(app, server) {
             type: MessageTypes.DISCONNECT,
             id: sessionID
           });
-          if (code === 1006) {
-            console.log(`${sessionID} disconnected abrubtly: ${reason || code}`);
-          }
+          console.log(`${sessionID} disconnected: ${reason ? `${code}:${reason}` : code}`);
           const sessions = clients.get(sessionID);
           sessions.pop();
           if (sessions.length === 0) {
