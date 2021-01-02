@@ -8,6 +8,7 @@ import {
 class VideoReceiverController extends VideoController {
   private maximumSeekPosition: number = 0;
   private hostDisconnected: boolean = false;
+  private attemptedToPlayCount: number = 0;
   constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement) {
     super(video, socket, toast, true);
 
@@ -29,10 +30,14 @@ class VideoReceiverController extends VideoController {
     });
 
     this.setVideoEvent(VideoEvent.play, () => {
-      console.log("User attempting to play manually");
-      this.forcePause();
-      this.showNotification("Wait for the host to start the video");
-      this.forceSeek(this.maximumSeekPosition);
+      if (this.attemptedToPlayCount > 1) {
+        console.log("User attempting to play manually");
+        this.forcePause();
+        this.showNotification("Wait for the host to start the video");
+        this.forceSeek(this.maximumSeekPosition);
+      } else {
+        this.attemptedToPlayCount++;
+      }
     });
 
     this.setVideoEvent(VideoEvent.pause, () => {
