@@ -246,7 +246,7 @@ export abstract class VideoController {
 
   protected reconnect() {
     console.log("Playback reconnected");
-    this.showNotification("Connecting...");
+    this.showNotification("Connecting to host...");
   }
 
   protected setVideoEvent(type: VideoEvent, callback: (ev: Event) => any) {

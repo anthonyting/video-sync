@@ -78,7 +78,7 @@ class VideoReceiverController extends VideoController {
 
     switch (response.type) {
       case MessageTypes.RESPOND:
-        this.showNotification("Connected");
+        this.showNotification("Connected to host.");
         // fall through
       case MessageTypes.DISPATCH:
         switch (response.request) {
