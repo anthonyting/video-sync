@@ -17,16 +17,6 @@ class VideoSenderController extends VideoController {
 
     video.currentTime = startTime;
 
-    const maxDifference = 2;
-    let time = 0;
-    video.addEventListener('timeupdate', () => {
-      const difference = Math.abs(video.currentTime - time);
-      if (difference > maxDifference) {
-        time = video.currentTime;
-        VideoController.setData('time', time.toString());
-      }
-    });
-
     this.setVideoEvent(VideoEvent.pause, () => {
       this.socket.send(this.getDispatchData(VideoEvent.pause));
     });

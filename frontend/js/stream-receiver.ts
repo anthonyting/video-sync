@@ -167,6 +167,7 @@ window.addEventListener('load', () => {
   ]).then(([socket]) => {
     video.removeEventListener(VideoEvent.play, video.pause);
     video.removeEventListener(VideoEvent.seeked, resetPlayer);
+    VideoController.setData('duration', video.duration.toString());
 
     const toast = document.getElementById('toast');
     new VideoReceiverController(video, socket, toast);

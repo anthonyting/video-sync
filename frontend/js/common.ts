@@ -114,6 +114,16 @@ export abstract class VideoController {
       this.showNotification("Your internet reconnected");
     });
 
+    const maxDifference = 2; // seconds
+    let time = 0;
+    video.addEventListener('timeupdate', () => {
+      const difference = Math.abs(video.currentTime - time);
+      if (difference > maxDifference) {
+        time = video.currentTime;
+        VideoController.setData('time', time.toString());
+      }
+    });
+
     let i = 0;
     video.addEventListener(VideoEvent.waiting, () => {
       if (!this.isVideoPlaying) {
