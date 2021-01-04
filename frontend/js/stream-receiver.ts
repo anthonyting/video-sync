@@ -61,6 +61,15 @@ class VideoReceiverController extends VideoController {
     this.syncTime();
   }
 
+  protected onQualityChange() {
+    super.onQualityChange();
+    const onVideoLoad = () => {
+      this.reconnect();
+      this.video.removeEventListener('loadeddata', onVideoLoad);
+    };
+    this.video.addEventListener('loadeddata', onVideoLoad);
+  }
+
   protected onSocketMessage(message: MessageEvent<any>) {
     super.onSocketMessage(message);
 

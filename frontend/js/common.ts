@@ -101,6 +101,9 @@ export abstract class VideoController {
   private static readonly storagePrefix: string = "VideoController_";
   private isViewer: boolean;
   private notification: Notification;
+  private qualityElement: HTMLButtonElement;
+  private isHighQuality: boolean = true;
+  private isChangingQuality: boolean;
   constructor(video: HTMLVideoElement, socket: WebSocket, toastElement: HTMLElement, isViewer: boolean) {
     this.isViewer = isViewer;
     this.video = video;
@@ -151,6 +154,28 @@ export abstract class VideoController {
     this.socket.addEventListener('message', this.onSocketMessage.bind(this));
 
     this.setupReconnectFallback();
+
+    this.qualityElement = <HTMLButtonElement>document.getElementById('quality');
+    this.qualityElement.addEventListener('click', this.onQualityChange.bind(this));
+  }
+
+  protected onQualityChange() {
+    if (this.isChangingQuality) {
+      return;
+    }
+    this.isChangingQuality = true;
+
+    this.video.pause();
+    const previousTime = this.video.currentTime;
+    this.video.src = `https://${SITE_URL}/test/video${this.isHighQuality ? "-720" : ""}.mp4`;
+    const onVideoLoad = () => {
+      this.video.currentTime = previousTime;
+      this.video.removeEventListener('loadeddata', onVideoLoad);
+      this.isHighQuality = !this.isHighQuality;
+      this.isChangingQuality = false;
+      this.qualityElement.textContent = this.isHighQuality ? "Decrease Quality" : "Increase Quality";
+    };
+    this.video.addEventListener('loadeddata', onVideoLoad);
   }
 
   protected onSocketMessage(message: MessageEvent<any>) {

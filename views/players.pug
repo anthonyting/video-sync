@@ -6,4 +6,6 @@ block content
       video#video.p-1(controls preload="metadata" controlsList="nodownload" disabled).mh-100.mw-100
         source(src="https://" + SITE_URL + "/test/video.mp4" type="video/mp4")
         track(label="English" kind="subtitles" srclang="en" src="https://" + SITE_URL + "/test/video.en.vtt" default)
+    .d-flex
+      button.btn.btn-secondary(type="button" id="quality") Decrease Quality
     block ui
