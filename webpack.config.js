@@ -9,6 +9,9 @@ const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const IgnoreEmitPlugin = require('ignore-emit-webpack-plugin');
 require('dotenv').config();
 const config = require('./config');
+const {
+  WebpackManifestPlugin
+} = require('webpack-manifest-plugin');
 
 module.exports = env => /** @type {import('webpack').Configuration} */ ({
   mode: env.NODE_ENV === 'production' ? 'production' : 'development',
@@ -41,7 +44,8 @@ module.exports = env => /** @type {import('webpack').Configuration} */ ({
   },
   output: {
     path: path.resolve(__dirname, 'public/dist'),
-    filename: '[name].bundle.js'
+    filename: '[name]-[contenthash].min.js',
+    publicPath: "" // webpack-manifest-plugin is prefixing auto in v5 for now
   },
   plugins: [
     new CleanWebpackPlugin(),
@@ -51,10 +55,11 @@ module.exports = env => /** @type {import('webpack').Configuration} */ ({
       SITE_URL: JSON.stringify(config.SITE_URL)
     }),
     new MiniCssExtractPlugin({
-      filename: '[name].css'
+      filename: '[name]-[contenthash].min.css'
     }),
     new OptimizeCssAssetsPlugin(),
-    new IgnoreEmitPlugin(/style.*.js/) // remove this when patched https://github.com/webpack/webpack/issues/11671
+    new IgnoreEmitPlugin(/style.*.js/), // remove this when patched https://github.com/webpack/webpack/issues/11671
+    new WebpackManifestPlugin()
   ],
   optimization: {
     removeEmptyChunks: true,

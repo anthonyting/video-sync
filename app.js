@@ -176,8 +176,13 @@ class StreamerSocket {
   }
 }
 
+const STATIC_MANIFEST = require('../public/dist/manifest.json');
+
 function initApp(app, server) {
   const indexRouter = require('./routes/index');
+
+  app.locals.STATIC_MANIFEST = STATIC_MANIFEST;
+
   // view engine setup
   app.set('views', path.join(__dirname, 'views'));
   app.set('view engine', 'pug');

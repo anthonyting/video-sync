@@ -1,7 +1,7 @@
 extends layout
 
 block scripts
-  script(src=BASEURL + '/dist/monitor.bundle.js')
+  script(src=BASEURL + '/dist/' + STATIC_MANIFEST['monitor.js'])
 
 block content
   main.container-fluid.d-flex.flex-column.text-white
