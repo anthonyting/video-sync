@@ -176,7 +176,7 @@ class StreamerSocket {
   }
 }
 
-const STATIC_MANIFEST = require('../public/dist/manifest.json');
+const STATIC_MANIFEST = require('./public/dist/manifest.json');
 
 function initApp(app, server) {
   const indexRouter = require('./routes/index');
