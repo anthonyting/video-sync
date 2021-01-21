@@ -59,8 +59,7 @@ export class Notification {
   constructor(toastElement: HTMLElement) {
     this.toastElement = toastElement;
     this.toastBody = this.toastElement.querySelector('.toast-body');
-    // @ts-ignore bootstrap types not up to date
-    this.toast = new bootstrap.Toast(toast, {
+    this.toast = new bootstrap.Toast(toastElement, {
       autohide: false
     });
   }
@@ -71,19 +70,16 @@ export class Notification {
    * @param delay if < 0, then do not hide
    */
   show(message: string, delay = 2500) {
-    // @ts-ignore
     this.toast.show();
     this.toastBody.textContent = message;
     if (delay > 0) {
       setTimeout(() => {
-        // @ts-ignore
         this.toast.hide();
       }, delay);
     }
   }
 
   hide() {
-    /** @ts-ignore */
     this.toast.hide();
   }
 }
