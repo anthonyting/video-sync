@@ -177,9 +177,15 @@ class StreamerSocket {
 }
 
 const STATIC_MANIFEST = require('./public/dist/manifest.json');
+const fs = require('fs');
 
 function initApp(app, server) {
   const indexRouter = require('./routes/index');
+
+  fs.watchFile(path.resolve(__dirname, './public/dist/manifest.json'), (curr, prev) => {
+    delete require.cache[require.resolve('./public/dist/manifest.json')];
+    app.locals.STATIC_MANIFEST = require('./public/dist/manifest.json');
+  });
 
   app.locals.STATIC_MANIFEST = STATIC_MANIFEST;
 
