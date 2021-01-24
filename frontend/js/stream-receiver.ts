@@ -90,21 +90,22 @@ class VideoReceiverController extends VideoController {
         this.showNotification("Connected to host.");
         // fall through
       case MessageTypes.DISPATCH:
+        const latencyAdjustment: number = this.getRealTime() - response.timestamp;
+        const latencyAdjustedSeek = response.time + (latencyAdjustment / 1000);
+        this.maximumSeekPosition =latencyAdjustedSeek;
         switch (response.request) {
           case VideoEvent.pause:
           // fall through
           case VideoEvent.seeking:
-            this.maximumSeekPosition = response.time;
             this.forcePause();
-            this.forceSeek(response.time);
+            this.forceSeek(latencyAdjustedSeek);
             break;
           case VideoEvent.play: {
-            const difference: number = this.getRealTime() - response.timestamp;
-            console.log(`Latency adjustment: ${difference}ms`);
+            console.log(`Latency adjustment: ${latencyAdjustment}ms`);
             if (response.time === 0) {
               this.forceSeek(response.time);
             } else {
-              this.forceSeek(response.time + (difference / 1000));
+              this.forceSeek(latencyAdjustedSeek);
             }
             this.forcePlay()
               .then(() => this.waitForBuffering())
