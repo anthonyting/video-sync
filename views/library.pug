@@ -1,0 +1,21 @@
+extends layout
+
+block scripts
+  script(src=BASEURL + "/dist/" + STATIC_MANIFEST['library.js']) 
+
+block content
+  main.container
+    form#searchForm(action=BASEURL + "/library/search" method="GET")
+      .form-group
+        input#search.form-control(name="search" placeholder="Search" required autocomplete="off")
+      button.btn.btn-primary(type="submit") Submit
+    #searchResults.d-flex.flex-column
+  #modal.modal(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header
+          h5.modal-title Select Content
+          button.btn-close(type='button' data-bs-dismiss='modal' aria-label='Close')
+        .modal-body
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Close

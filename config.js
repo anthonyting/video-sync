@@ -8,8 +8,10 @@ const session_secret = process.env.session_secret;
 
 const BASEURL = process.env.BASEURL;
 const SITE_URL = process.env.SITE_URL;
+const PLEX_IP = process.env.PLEX_IP;
+const PLEX_TOKEN = process.env.PLEX_TOKEN;
 
-if ([general_username, general_password, admin_username, admin_password, session_secret, BASEURL, SITE_URL].includes(undefined)) {
+if ([general_username, general_password, admin_username, admin_password, session_secret, BASEURL, SITE_URL, PLEX_IP, PLEX_TOKEN].includes(undefined)) {
   console.warn("Some environment variables are undefined.");
 }
 
@@ -26,5 +28,7 @@ module.exports = {
   },
   session_secret,
   BASEURL,
-  SITE_URL
+  SITE_URL,
+  PLEX_IP,
+  PLEX_TOKEN
 }

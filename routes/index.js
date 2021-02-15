@@ -80,4 +80,9 @@ router.post('/terminate/:id', (req, res, next) => {
   }
 });
 
+router.use('/library', basicAuth({
+  users: config.credentials.admin,
+  challenge: true
+}), require('./library'));
+
 module.exports = router;
