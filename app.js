@@ -265,7 +265,14 @@ function initApp(app, server) {
           });
           console.log(`${sessionID} disconnected: ${reason ? `${code}:${reason}` : code}`);
           const sessions = clients.get(sessionID);
-          sessions.pop();
+          const activeSessionIndex = sessions.findIndex(element => element.socket === ws);
+          if (activeSessionIndex !== -1) {
+            delete sessions[activeSessionIndex].keepalive;
+            delete sessions[activeSessionIndex].socket;
+            sessions.splice(activeSessionIndex, 1);
+          } else {
+            console.warn(`Could not find active session in session array for ${sessionID}`);
+          }
           if (sessions.length === 0) {
             clients.delete(sessionID);
           }
@@ -356,6 +363,7 @@ class KeepAlive {
     this.socket.on('close', () => {
       clearTimeout(this.closeTimeout);
       clearInterval(this.pingInterval);
+      this.socket = null;
     });
   }
 
