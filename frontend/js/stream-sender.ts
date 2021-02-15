@@ -36,8 +36,12 @@ class VideoSenderController extends VideoController {
   }
 
   private setupStateSync() {
+    let lastState = this.getState();
     this.stateDispatcherInterval = window.setInterval(() => {
-      this.socket.send(this.getDispatchData(this.getState(), MessageTypes.CHECK));
+      const currentState = this.getState();
+      if (lastState !== currentState) {
+        this.socket.send(this.getDispatchData(this.getState(), MessageTypes.CHECK));
+      }
     }, 30000);
   }
 
