@@ -49,7 +49,8 @@ const MessageTypes = {
   DISPATCH: 'dispatch',
   RESPOND: 'respond',
   TIME: 'time',
-  TERMINATE: 'terminate'
+  TERMINATE: 'terminate',
+  CHECK: 'check'
 };
 
 class StreamerSocket {
@@ -100,6 +101,8 @@ class StreamerSocket {
         }
 
         switch (parsed.type) {
+          case MessageTypes.CHECK:
+            // fall through
           case MessageTypes.DISPATCH:
             clients.forEach(clientSessions => {
               for (let i = 0, n = clientSessions.length; i < n; i++) {
@@ -131,7 +134,7 @@ class StreamerSocket {
             sendTime(ws, requestReceivedAt, parsed.timestamp);
             break;
           default:
-            console.warn(`Missing host message request type: ${parsed.request}`);
+            console.warn(`Missing host message request type: ${parsed.type}`);
         }
       } catch (err) {
         console.error("Error parsing message: ", msg, err);
