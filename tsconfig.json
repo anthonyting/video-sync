@@ -5,6 +5,7 @@
     "module": "esnext",
     "target": "esnext",
     "sourceMap": true,
-    "allowUmdGlobalAccess": true
+    "allowUmdGlobalAccess": true,
+    "moduleResolution": "node"
   }
 }

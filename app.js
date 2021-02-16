@@ -13,6 +13,8 @@ const {
 
 const http = require('http');
 
+const MessageTypes = require('./src/constants').MessageTypes;
+
 const wss = new WebSocket.Server({
   noServer: true
 });
@@ -38,19 +40,6 @@ function sendTime(ws, requestReceivedAt, requestSentAt) {
     }
   }));
 }
-
-/**
- * @enum
- */
-const MessageTypes = {
-  RECONNECT: 'reconnect',
-  CONNECT: 'connect',
-  DISCONNECT: 'disconnect',
-  DISPATCH: 'dispatch',
-  RESPOND: 'respond',
-  TIME: 'time',
-  TERMINATE: 'terminate'
-};
 
 class StreamerSocket {
 
@@ -219,7 +208,7 @@ function initApp(app, server) {
     err.status = Number(err.status) || 500;
     res.locals.error = err.expose ? err.message : http.STATUS_CODES[err.status];
 
-    if (400 <= err.status < 500) {
+    if (err.status && 400 <= err.status && err.status < 500) {
       console.warn(err.message);
     } else {
       console.error(err);

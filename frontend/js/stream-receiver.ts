@@ -143,6 +143,13 @@ class VideoReceiverController extends VideoController {
         this.disableVideoInteraction();
         this.forceCloseSocket();
         break;
+      case MessageTypes.SETUP:
+        this.forcePause();
+        this.video.querySelector('source').src = `${BASEURL}/content/${response.data.content}.mp4`;
+        this.video.querySelector('track').src = `${BASEURL}/content/${response.data.content}.vtt`;
+        this.video.load();
+        this.reconnect();
+        break;
       default:
         console.error(`Undefined message type detected: ${response.type}`);
         return;

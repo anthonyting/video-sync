@@ -19,3 +19,13 @@ block content
         .modal-body
         .modal-footer
           button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Close
+  #confirmModal.modal(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header
+          h5.modal-title Confirm
+          button.btn-close(type='button' data-bs-dismiss='modal' aria-label='Close')
+        .modal-body
+        .modal-footer
+          button.yes.btn.btn-primary(type='button') Yes
+          button.no.btn.btn-danger(type='button' data-bs-dismiss='modal') No

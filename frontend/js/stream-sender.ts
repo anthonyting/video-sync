@@ -74,6 +74,12 @@ class VideoSenderController extends VideoController {
         break;
       case MessageTypes.TIME:
         break;
+      case MessageTypes.SETUP:
+        this.video.pause();
+        this.video.querySelector('source').src = `${BASEURL}/content/${response.data.content}.mp4`;
+        this.video.querySelector('track').src = `${BASEURL}/content/${response.data.content}.vtt`;
+        this.video.load();
+        break;
       default:
         console.error(`Undefined message type detected: ${response.type}`);
         return;

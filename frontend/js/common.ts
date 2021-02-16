@@ -24,7 +24,8 @@ export const enum MessageTypes {
   DISPATCH = 'dispatch',
   RESPOND = 'respond',
   TIME = 'time',
-  TERMINATE = 'terminate'
+  TERMINATE = 'terminate',
+  SETUP = 'setup'
 };
 
 export const enum VideoEvent {

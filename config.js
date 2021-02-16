@@ -11,7 +11,27 @@ const SITE_URL = process.env.SITE_URL;
 const PLEX_IP = process.env.PLEX_IP;
 const PLEX_TOKEN = process.env.PLEX_TOKEN;
 
-if ([general_username, general_password, admin_username, admin_password, session_secret, BASEURL, SITE_URL, PLEX_IP, PLEX_TOKEN].includes(undefined)) {
+const FFMPEG_OUTPUT_PATH = process.env.FFMPEG_OUTPUT_PATH;
+
+/** @type {Array<string>} */
+const CONTENT_INPUT_PATHS = JSON.parse(process.env.CONTENT_INPUT_PATHS);
+/** @type {Array<string>} */
+const ORIGINAL_INPUT_PATHS = JSON.parse(process.env.ORIGINAL_INPUT_PATHS);
+
+if ([
+    general_username,
+    general_password,
+    admin_username,
+    admin_password,
+    session_secret,
+    BASEURL,
+    SITE_URL,
+    PLEX_IP,
+    PLEX_TOKEN,
+    FFMPEG_OUTPUT_PATH,
+    CONTENT_INPUT_PATHS,
+    ORIGINAL_INPUT_PATHS
+  ].includes(undefined)) {
   console.warn("Some environment variables are undefined.");
 }
 
@@ -30,5 +50,8 @@ module.exports = {
   BASEURL,
   SITE_URL,
   PLEX_IP,
-  PLEX_TOKEN
+  PLEX_TOKEN,
+  CONTENT_INPUT_PATHS,
+  ORIGINAL_INPUT_PATHS,
+  FFMPEG_OUTPUT_PATH
 }

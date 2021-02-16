@@ -33,6 +33,10 @@ video[disabled] {
   pointer-events: none;
 }
 
+.toast:not(.show) {
+  pointer-events: none;
+}
+
 .toast-container {
   z-index: 1;
 }

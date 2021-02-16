@@ -20,7 +20,8 @@ module.exports = env => /** @type {import('webpack').Configuration} */ ({
     sender: path.resolve(__dirname, 'frontend/js/stream-sender.ts'),
     style: path.resolve(__dirname, 'frontend/css/style.css'),
     monitor: path.resolve(__dirname, 'frontend/js/monitor.ts'),
-    library: path.resolve(__dirname, 'frontend/js/library.ts')
+    library: path.resolve(__dirname, 'frontend/js/library.ts'),
+    manage: path.resolve(__dirname, 'frontend/js/manage.ts')
   },
   devtool: env.NODE_ENV === 'production' ? false : 'eval-cheap-module-source-map',
   module: {
