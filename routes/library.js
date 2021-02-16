@@ -45,7 +45,7 @@ router.get('/', (req, res, next) => {
 async function findRealPath(filepath) {
   const check = [];
   for (originalPath of config.ORIGINAL_INPUT_PATHS) {
-    const relative = path.win32.relative(originalPath, filepath).split(path.sep).join(path.posix.sep);
+    const relative = path.win32.relative(originalPath, filepath).split(path.win32.sep).join(path.posix.sep);
     if (relative.length < filepath.length) {
       for (contentPath of config.CONTENT_INPUT_PATHS) {
         const newPath = path.join(contentPath, relative);
@@ -76,11 +76,11 @@ router.post('/queue/:key', async (req, res, next) => {
     const data = await queryPlex(`/library/metadata/${req.params.key}`);
     const part = data.Metadata[0].Media[0].Part[0];
     const filePath = part.file;
-    const outputName = path.parse(filePath).name;
     const realPath = await findRealPath(filePath);
     if (!realPath) {
       return next(createHttpError(400), "Invalid real path");
     }
+    const outputName = path.parse(realPath).name;
     const video = await (new ffmpeg(realPath));
     video.addCommand('-acodec', 'mp3');
     video.addCommand('-vcodec', 'copy');
