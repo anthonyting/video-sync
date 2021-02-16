@@ -45,7 +45,7 @@ router.get('/', (req, res, next) => {
 async function findRealPath(filepath) {
   const check = [];
   for (originalPath of config.ORIGINAL_INPUT_PATHS) {
-    const relative = path.win32.relative(originalPath, filepath);
+    const relative = path.win32.relative(originalPath, filepath).split(path.sep).join(path.posix.sep);
     if (relative.length < filepath.length) {
       for (contentPath of config.CONTENT_INPUT_PATHS) {
         const newPath = path.join(contentPath, relative);
