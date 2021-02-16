@@ -1,4 +1,3 @@
-import { SourceMapDevToolPlugin } from 'webpack';
 import { Notification } from './common';
 
 function onError(err: any, notification: Notification) {
