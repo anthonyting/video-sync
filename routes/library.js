@@ -88,6 +88,7 @@ router.post('/queue/:key', async (req, res, next) => {
     const video = await (new ffmpeg(realPath));
     video.addCommand('-acodec', 'mp3');
     video.addCommand('-vcodec', 'copy');
+    video.addCommand('-map', '0:m:language:eng');
     video.addCommand('-af', `"pan=stereo|FL=0.5*FC+0.707*FL+0.707*BL+0.5*LFE|FR=0.5*FC+0.707*FR+0.707*BR+0.5*LFE"`);
     video.addCommand('', path.resolve(config.FFMPEG_OUTPUT_PATH, outputName + ".vtt"));
     video.addCommand('-y', '');
