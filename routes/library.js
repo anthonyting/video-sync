@@ -200,8 +200,8 @@ router.post('/manage/set', (req, res, next) => {
   fs.readFile(path.resolve(config.FFMPEG_OUTPUT_PATH, content + ".mp4"))
     .then(file => {
       clients.forEach(client => {
-        client.forEach(socket => {
-          socket.send({
+        client.forEach(connection => {
+          connection.socket.send({
             type: MessageTypes.SETUP,
             content: content
           });
