@@ -7,7 +7,10 @@ const ffmpeg = require('ffmpeg');
 const path = require('path');
 const fs = require('fs').promises;
 const queue = require('../src/queue');
-const clients = require('../app').clients;
+const {
+  host,
+  clients
+} = require('../app');
 const MessageTypes = require('../src/constants').MessageTypes;
 
 /**
@@ -199,14 +202,18 @@ router.post('/manage/set', (req, res, next) => {
   const content = req.body.content;
   fs.access(path.resolve(config.FFMPEG_OUTPUT_PATH, content + ".mp4"))
     .then(file => {
+      const message = {
+        type: MessageTypes.SETUP,
+        data: {
+          content: content
+        }
+      }
       clients.forEach(client => {
         client.forEach(connection => {
-          connection.socket.send(JSON.stringify({
-            type: MessageTypes.SETUP,
-            content: content
-          }));
+          connection.socket.send(JSON.stringify(message));
         })
       });
+      host.socket.send(message)
       res.json({});
     })
     .catch(next);

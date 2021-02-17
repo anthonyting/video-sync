@@ -23,6 +23,10 @@ const wss = new WebSocket.Server({
  * @type {Map<string, [{socket: import('ws'), keepalive: KeepAlive}]>} clients
  */
 const clients = new Map();
+/** @type {{socket: ?StreamerSocket}} */
+const host = {
+  socket: null
+};
 
 /**
  * 
@@ -232,6 +236,7 @@ function initApp(app, server) {
   });
 
   let streamerSocket = new StreamerSocket();
+  host.socket = streamerSocket;
   wss.on('connection', (ws, req) => {
     sessionParser(req, {}, () => {
       if (!req.session || !req.session.hasAccess) {
@@ -358,5 +363,6 @@ class KeepAlive {
 
 module.exports = {
   initApp,
-  clients
+  clients,
+  host
 };
