@@ -12,6 +12,7 @@ const {
   clients
 } = require('../app');
 const MessageTypes = require('../src/constants').MessageTypes;
+const redis = require('../src/redis');
 
 /**
  * @param {string} route
@@ -192,7 +193,6 @@ router.get('/manage', (req, res, next) => {
 });
 
 router.post('/manage/set', (req, res, next) => {
-  console.log(req.body);
   if (!req.body.content) {
     next(createHttpError(400));
   } else {
@@ -207,7 +207,8 @@ router.post('/manage/set', (req, res, next) => {
         data: {
           content: content
         }
-      }
+      };
+      redis.set(config.CONTENT_KEY, content);
       clients.forEach(client => {
         client.forEach(connection => {
           connection.socket.send(JSON.stringify(message));

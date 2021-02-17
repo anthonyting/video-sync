@@ -6,6 +6,7 @@ const basicAuth = require('express-basic-auth');
 
 const clients = require("../app").clients;
 const createHttpError = require('http-errors');
+const redis = require('../src/redis');
 
 /* GET home page. */
 router.get('/', basicAuth({
@@ -13,9 +14,15 @@ router.get('/', basicAuth({
   challenge: true
 }), function (req, res, next) {
   req.session.hasAccess = true;
-
-  res.render('receive', {
-    title: 'secret'
+  redis.get(config.CONTENT_KEY, (err, reply) => {
+    if (err) {
+      next(err);
+    } else {
+      res.render('receive', {
+        title: 'secret',
+        CONTENT: reply
+      });
+    }
   });
 });
 
@@ -25,9 +32,15 @@ router.get('/broadcast', basicAuth({
 }), (req, res, next) => {
   req.session.hasStreamAccess = true;
   req.session.hasAccess = true;
-
-  res.render('broadcast', {
-    title: 'admin_page'
+  redis.get(config.CONTENT_KEY, (err, reply) => {
+    if (err) {
+      next(err);
+    } else {
+      res.render('broadcast', {
+        title: 'admin_page',
+        CONTENT: reply
+      });
+    }
   });
 });
 

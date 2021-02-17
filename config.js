@@ -18,6 +18,8 @@ const CONTENT_INPUT_PATHS = JSON.parse(process.env.CONTENT_INPUT_PATHS);
 /** @type {Array<string>} */
 const ORIGINAL_INPUT_PATHS = JSON.parse(process.env.ORIGINAL_INPUT_PATHS);
 
+const CONTENT_KEY = "CONTENT_KEY";
+
 if ([
     general_username,
     general_password,
@@ -30,7 +32,8 @@ if ([
     PLEX_TOKEN,
     FFMPEG_OUTPUT_PATH,
     CONTENT_INPUT_PATHS,
-    ORIGINAL_INPUT_PATHS
+    ORIGINAL_INPUT_PATHS,
+    CONTENT_KEY
   ].includes(undefined)) {
   console.warn("Some environment variables are undefined.");
 }
@@ -53,5 +56,6 @@ module.exports = {
   PLEX_TOKEN,
   CONTENT_INPUT_PATHS,
   ORIGINAL_INPUT_PATHS,
-  FFMPEG_OUTPUT_PATH
+  FFMPEG_OUTPUT_PATH,
+  CONTENT_KEY
 }

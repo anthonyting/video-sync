@@ -9,12 +9,11 @@ if (process.env.NODE_ENV !== 'production') {
     checkPeriod: 24 * 60 * 60 * 1000
   });
 } else {
-  const redis = require('redis');
+  const redis = require('./src/redis');
   const RedisStore = require('connect-redis')(session);
-  const redisClient = redis.createClient();
   console.log("Setting up redis session store");
   sessionStore = new RedisStore({
-    client: redisClient
+    client: redis
   });
 }
 
