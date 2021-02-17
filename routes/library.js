@@ -197,7 +197,7 @@ router.post('/manage/set', (req, res, next) => {
   }
 }, (req, res, next) => {
   const content = req.body.content;
-  fs.readFile(path.resolve(config.FFMPEG_OUTPUT_PATH, content + ".mp4"))
+  fs.access(path.resolve(config.FFMPEG_OUTPUT_PATH, content + ".mp4"))
     .then(file => {
       clients.forEach(client => {
         client.forEach(connection => {
