@@ -51,12 +51,14 @@ class VideoReceiverController extends VideoController {
       });
     });
 
-    this.forcePlay().then(() => {
-      this.reconnect();
-    }).catch(err => {
-      console.error(err);
-      this.reconnectOnPlay = true;
-    });
+    if (this.video.readyState !== 0) {
+      this.forcePlay().then(() => {
+        this.reconnect();
+      }).catch(err => {
+        console.error(err);
+        this.reconnectOnPlay = true;
+      });
+    }
 
     this.syncTime();
   }

@@ -15,7 +15,9 @@ class VideoSenderController extends VideoController {
   constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement, startTime: number = 0) {
     super(video, socket, toast, false);
 
-    video.currentTime = startTime;
+    if (video.readyState !== 0) {
+      video.currentTime = startTime;
+    }
 
     this.setVideoEvent(VideoEvent.pause, () => {
       this.socket.send(this.getDispatchData(VideoEvent.pause));
@@ -104,22 +106,7 @@ async function onLoad() {
   const continueContainer = document.getElementById('continueContainer');
 
   continueContainer.classList.add('d-none');
-  const video: HTMLVideoElement = <HTMLVideoElement>document.getElementById("video");
-
-  await new Promise<void>(resolve => {
-    const onLoadedData = () => {
-      resolve();
-      video.removeEventListener('loadeddata', onLoadedData);
-    }
-    video.addEventListener('loadeddata', onLoadedData);
-  });
-
   const startTime = new Promise<number>(resolve => {
-    const lastVideoDuration = Number(VideoController.getData("duration"));
-    if (lastVideoDuration !== video.duration) {
-      // basic check for video changing
-      return resolve(0);
-    }
     const lastSavedTime = Number(VideoController.getData("time"));
     if (lastSavedTime) {
       continueContainer.classList.remove('d-none');
