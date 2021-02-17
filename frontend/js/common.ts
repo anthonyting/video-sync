@@ -85,6 +85,15 @@ export class Notification {
   }
 }
 
+export async function fetchJson(input: RequestInfo, init: RequestInit = null) {
+  const response = await fetch(input, init);
+  if (!response.ok) {
+    throw await response.json();
+  }
+
+  return response.json();
+}
+
 export abstract class VideoController {
   protected video: HTMLVideoElement;
   protected socket: WebSocket;
@@ -153,7 +162,17 @@ export abstract class VideoController {
     this.setupReconnectFallback();
 
     this.qualityElement = <HTMLButtonElement>document.getElementById('quality');
-    this.qualityElement.addEventListener('click', this.onQualityChange.bind(this));
+    const source = video.querySelector('source').src;
+    fetch((source.substring(0, source.lastIndexOf('.')) || source) + "-720.mp4", {
+      method: 'HEAD'
+    })
+      .then(json => {
+        if (json.ok) {
+          this.qualityElement.classList.remove("d-none");
+          this.qualityElement.addEventListener('click', this.onQualityChange.bind(this));
+        }
+      })
+      .catch(console.error);
   }
 
   protected onQualityChange() {

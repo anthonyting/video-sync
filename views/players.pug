@@ -7,5 +7,5 @@ block content
         source(type="video/mp4" src=CONTENT ? CONTENT + ".mp4" : false)
         track(label="English" kind="subtitles" srclang="en" default src=CONTENT ? CONTENT + ".vtt" : false)
     .d-flex
-      button.btn.btn-secondary(type="button" id="quality") Decrease Quality
+      button.btn.btn-secondary.d-none(type="button" id="quality") Decrease Quality
     block ui
