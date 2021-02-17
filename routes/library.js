@@ -92,7 +92,7 @@ router.post('/queue/:key', async (req, res, next) => {
     video.addCommand('-af', `"pan=stereo|FL=0.5*FC+0.707*FL+0.707*BL+0.5*LFE|FR=0.5*FC+0.707*FR+0.707*BR+0.5*LFE"`);
     video.addCommand('-y', '');
 
-    const srt = await (new ffmpeg(parsed.dir + parsed.name + ".en.srt"));
+    const srt = await (new ffmpeg(path.join(parsed.dir, parsed.name + ".en.srt")));
     queue.add(async () => {
       return Promise.all([
         new Promise((resolve, reject) => {
