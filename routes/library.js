@@ -201,10 +201,10 @@ router.post('/manage/set', (req, res, next) => {
     .then(file => {
       clients.forEach(client => {
         client.forEach(connection => {
-          connection.socket.send({
+          connection.socket.send(JSON.stringify({
             type: MessageTypes.SETUP,
             content: content
-          });
+          }));
         })
       });
       res.json({});
