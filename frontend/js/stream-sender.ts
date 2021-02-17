@@ -104,6 +104,7 @@ class VideoSenderController extends VideoController {
 
 async function onLoad() {
   const continueContainer = document.getElementById('continueContainer');
+  const video: HTMLVideoElement = <HTMLVideoElement>document.getElementById("video");
 
   continueContainer.classList.add('d-none');
   const startTime = new Promise<number>(resolve => {
