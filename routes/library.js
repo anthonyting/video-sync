@@ -93,6 +93,7 @@ router.post('/queue/:key', async (req, res, next) => {
     video.addCommand('-y', '');
 
     const srt = await (new ffmpeg(path.join(parsed.dir, parsed.name + ".en.srt")));
+    srt.addCommand('-y', '');
     queue.add(async () => {
       return Promise.all([
         new Promise((resolve, reject) => {
