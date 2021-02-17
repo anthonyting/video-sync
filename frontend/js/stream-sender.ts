@@ -114,7 +114,7 @@ async function onLoad() {
     video.addEventListener('loadeddata', onLoadedData);
   });
 
-  const [startTime, socket] = await Promise.all([new Promise<number>(resolve => {
+  const startTime = new Promise<number>(resolve => {
     const lastVideoDuration = Number(VideoController.getData("duration"));
     if (lastVideoDuration !== video.duration) {
       // basic check for video changing
@@ -137,13 +137,18 @@ async function onLoad() {
     } else {
       resolve(0);
     }
-  }), setupWebSocket(false)])
+  });
+
+  const socket = await setupWebSocket(false);
 
   continueContainer.classList.add('d-none');
   VideoController.setData('duration', video.duration.toString());
 
   const toast = document.getElementById('toast');
-  new VideoSenderController(video, socket, toast, startTime);
+  new VideoSenderController(video, socket, toast, 0);
+  startTime.then(time => {
+    video.currentTime = time;
+  });
   video.removeAttribute('disabled');
 }
 

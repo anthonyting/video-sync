@@ -88,11 +88,11 @@ class VideoReceiverController extends VideoController {
     switch (response.type) {
       case MessageTypes.RESPOND:
         this.showNotification("Connected to host.");
-        // fall through
+      // fall through
       case MessageTypes.DISPATCH:
         const latencyAdjustment: number = this.getRealTime() - response.timestamp;
         const latencyAdjustedSeek = response.time + (latencyAdjustment / 1000);
-        this.maximumSeekPosition =latencyAdjustedSeek;
+        this.maximumSeekPosition = latencyAdjustedSeek;
         switch (response.request) {
           case VideoEvent.pause:
           // fall through
@@ -167,23 +167,7 @@ class VideoReceiverController extends VideoController {
 
 window.addEventListener('load', () => {
   const video: HTMLVideoElement = <HTMLVideoElement>document.getElementById("video");
-  const resetPlayer = () => video.currentTime = 0;
-
-  video.addEventListener(VideoEvent.play, video.pause);
-  video.addEventListener(VideoEvent.seeked, resetPlayer);
-  const videoLoaded = new Promise<void>(resolve => {
-    const onLoadedData = () => {
-      resolve();
-      video.removeEventListener('loadeddata', onLoadedData);
-    }
-    video.addEventListener('loadeddata', onLoadedData);
-  });
-  Promise.all([
-    setupWebSocket(true),
-    videoLoaded
-  ]).then(([socket]) => {
-    video.removeEventListener(VideoEvent.play, video.pause);
-    video.removeEventListener(VideoEvent.seeked, resetPlayer);
+  setupWebSocket(true).then(socket => {
     VideoController.setData('duration', video.duration.toString());
 
     const toast = document.getElementById('toast');
