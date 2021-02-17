@@ -84,23 +84,34 @@ router.post('/queue/:key', async (req, res, next) => {
     if (!realPath) {
       return next(createHttpError(400), "Invalid real path");
     }
-    const outputName = path.parse(realPath).name;
+    const parsed = path.parse(realPath);
+    const outputName = parsed.name;
     const video = await (new ffmpeg(realPath));
     video.addCommand('-acodec', 'mp3');
     video.addCommand('-vcodec', 'copy');
-    video.addCommand('-map', '0:m:language:eng');
     video.addCommand('-af', `"pan=stereo|FL=0.5*FC+0.707*FL+0.707*BL+0.5*LFE|FR=0.5*FC+0.707*FR+0.707*BR+0.5*LFE"`);
-    video.addCommand('', path.resolve(config.FFMPEG_OUTPUT_PATH, outputName + ".vtt"));
     video.addCommand('-y', '');
+
+    const srt = await (new ffmpeg(parsed.dir + parsed.name + ".en.srt"));
     queue.add(async () => {
-      return new Promise((resolve, reject) => {
-        video.save(path.resolve(config.FFMPEG_OUTPUT_PATH, outputName + ".mp4"), (err, file) => {
-          if (err) {
-            return reject(err);
-          }
-          resolve(file);
-        });
-      });
+      return Promise.all([
+        new Promise((resolve, reject) => {
+          video.save(path.resolve(config.FFMPEG_OUTPUT_PATH, outputName + ".mp4"), (err, file) => {
+            if (err) {
+              return reject(err);
+            }
+            resolve(file);
+          });
+        }),
+        new Promise((resolve, reject) => {
+          srt.save(path.resolve(config.FFMPEG_OUTPUT_PATH, outputName + ".vtt"), (err, file) => {
+            if (err) {
+              return reject(err);
+            }
+            resolve(file);
+          });
+        })
+      ]);
     }).catch(err => {
       console.error(err);
     });
