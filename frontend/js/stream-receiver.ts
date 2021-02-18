@@ -79,7 +79,7 @@ class VideoReceiverController extends VideoController {
     type: MessageTypes;
     data: any
   }, responseReceivedAt: number) {
-    const latencyAdjustment: number = this.getRealTime() - response.timestamp;
+    const latencyAdjustment: number = this.getRealTime() - response.timestamp + 100;
     const latencyAdjustedSeek = response.time + (latencyAdjustment / 1000);
     this.maximumSeekPosition = latencyAdjustedSeek;
     switch (response.request) {
