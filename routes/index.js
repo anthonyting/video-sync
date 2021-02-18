@@ -76,7 +76,9 @@ router.post('/terminate/:id', requireRole({
         }));
         terminatePromises.push(new Promise(resolve => {
           setTimeout(() => {
-            value.socket.close(1008, "Terminated");
+            if (value.socket) {
+              value.socket.close(1008, "Terminated");
+            }
             resolve();
           }, 1000);
         }));
