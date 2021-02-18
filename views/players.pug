@@ -5,7 +5,7 @@ block content
     .video-container.mh-100.mw-100.d-flex.justify-content-center
       video#video.p-1(controls preload="metadata" controlsList="nodownload" disabled).mh-100.mw-100
         source(type="video/mp4" src=CONTENT ? BASEURL + "/content/" + CONTENT + ".mp4" : false)
-        track(label="English" kind="subtitles" srclang="en" default src=CONTENT ? CONTENT + ".vtt" : false)
+        track(label="English" kind="subtitles" srclang="en" default src=CONTENT ? BASEURL + "/content/" + CONTENT + ".vtt" : false)
     .d-flex
       button.btn.btn-secondary.d-none(type="button" id="quality") Decrease Quality
     block ui
