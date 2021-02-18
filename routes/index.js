@@ -2,17 +2,19 @@ var express = require('express');
 var router = express.Router();
 
 const config = require('../config');
-const basicAuth = require('express-basic-auth');
-
 const clients = require("../app").clients;
 const createHttpError = require('http-errors');
 const redis = require('../src/redis');
+const {
+  requireRole
+} = require('../util');
 
 /* GET home page. */
-router.get('/', basicAuth({
-  users: Object.assign({}, config.credentials.general, config.credentials.admin),
-  challenge: true
-}), function (req, res, next) {
+router.get('/', requireRole({
+  general: true,
+  broadcaster: true,
+  admin: true
+}), (req, res, next) => {
   req.session.hasAccess = true;
   redis.get(config.CONTENT_KEY, (err, reply) => {
     if (err) {
@@ -26,9 +28,9 @@ router.get('/', basicAuth({
   });
 });
 
-router.get('/broadcast', basicAuth({
-  users: config.credentials.admin,
-  challenge: true
+router.get('/broadcast', requireRole({
+  broadcaster: true,
+  admin: true
 }), (req, res, next) => {
   req.session.hasStreamAccess = true;
   req.session.hasAccess = true;
@@ -44,9 +46,8 @@ router.get('/broadcast', basicAuth({
   });
 });
 
-router.get('/monitor', basicAuth({
-  users: config.credentials.admin,
-  challenge: true
+router.get('/monitor', requireRole({
+  admin: true
 }), (req, res, next) => {
   res.render('monitor', {
     title: 'monitor',
@@ -54,7 +55,9 @@ router.get('/monitor', basicAuth({
   });
 });
 
-router.post('/terminate/:id', (req, res, next) => {
+router.post('/terminate/:id', requireRole({
+  admin: true
+}), (req, res, next) => {
   res.locals.jsonError = true;
 
   if (req.session.hasStreamAccess) {
@@ -93,9 +96,8 @@ router.post('/terminate/:id', (req, res, next) => {
   }
 });
 
-router.use('/library', basicAuth({
-  users: config.credentials.admin,
-  challenge: true
+router.use('/library', requireRole({
+  admin: true
 }), require('./library'));
 
 module.exports = router;

@@ -1,10 +1,13 @@
-const general_username = process.env.general_username;
-const general_password = process.env.general_password;
+const GENERAL_USERNAME = process.env.GENERAL_USERNAME;
+const GENERAL_PASSWORD = process.env.GENERAL_PASSWORD;
 
-const admin_username = process.env.admin_username;
-const admin_password = process.env.admin_password;
+const BROADCASTER_USERNAME = process.env.BROADCASTER_USERNAME;
+const BROADCASTER_PASSWORD = process.env.BROADCASTER_PASSWORD;
 
-const session_secret = process.env.session_secret;
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+const SESSION_SECRET = process.env.session_secret;
 
 const BASEURL = process.env.BASEURL;
 const SITE_URL = process.env.SITE_URL;
@@ -21,11 +24,11 @@ const ORIGINAL_INPUT_PATHS = JSON.parse(process.env.ORIGINAL_INPUT_PATHS);
 const CONTENT_KEY = "CONTENT_KEY";
 
 if ([
-    general_username,
-    general_password,
-    admin_username,
-    admin_password,
-    session_secret,
+    GENERAL_USERNAME,
+    GENERAL_PASSWORD,
+    ADMIN_USERNAME,
+    ADMIN_PASSWORD,
+    SESSION_SECRET,
     BASEURL,
     SITE_URL,
     PLEX_IP,
@@ -38,18 +41,22 @@ if ([
   console.warn("Some environment variables are undefined.");
 }
 
-const general = {};
-general[general_username] = general_password;
+const GENERAL = {};
+GENERAL[GENERAL_USERNAME] = GENERAL_PASSWORD;
 
-const admin = {};
-admin[admin_username] = admin_password;
+const ADMIN = {};
+ADMIN[ADMIN_USERNAME] = ADMIN_PASSWORD;
+
+const BROADCASTER = {};
+BROADCASTER[BROADCASTER_USERNAME] = BROADCASTER_PASSWORD;
 
 module.exports = {
-  credentials: {
-    general: general,
-    admin: admin
+  CREDENTIALS: {
+    GENERAL: GENERAL,
+    ADMIN: ADMIN,
+    BROADCASTER: BROADCASTER
   },
-  session_secret,
+  SESSION_SECRET,
   BASEURL,
   SITE_URL,
   PLEX_IP,
@@ -58,4 +65,4 @@ module.exports = {
   ORIGINAL_INPUT_PATHS,
   FFMPEG_OUTPUT_PATH,
   CONTENT_KEY
-}
+};
