@@ -72,6 +72,48 @@ class VideoReceiverController extends VideoController {
     this.video.addEventListener('loadeddata', onVideoLoad);
   }
 
+  private invokeState(state: VideoEvent, response: {
+    time: number;
+    timestamp: number;
+    request: VideoEvent;
+    type: MessageTypes;
+    data: any
+  }, responseReceivedAt: number) {
+    const latencyAdjustment: number = this.getRealTime() - response.timestamp;
+    const latencyAdjustedSeek = response.time + (latencyAdjustment / 1000);
+    this.maximumSeekPosition = latencyAdjustedSeek;
+    switch (response.request) {
+      case VideoEvent.pause:
+      // fall through
+      case VideoEvent.seeking:
+        this.forcePause();
+        this.forceSeek(latencyAdjustedSeek);
+        break;
+      case VideoEvent.play: {
+        console.log(`Latency adjustment: ${latencyAdjustment}ms`);
+        if (response.time === 0) {
+          this.forceSeek(response.time);
+        } else {
+          this.forceSeek(latencyAdjustedSeek);
+        }
+        this.forcePlay()
+          .then(() => this.waitForBuffering())
+          .catch(console.warn)
+          .finally(() => {
+            const bufferAdjustment = Date.now() - responseReceivedAt + 25;
+            console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
+            this.maximumSeekPosition = Math.max(response.time, this.video.currentTime);
+            this.forceSeek(this.video.currentTime + (bufferAdjustment / 1000));
+            this.maximumSeekPosition = Math.max(this.maximumSeekPosition, this.video.currentTime);
+            this.enableVideoInteraction();
+          });
+        break;
+      }
+      default:
+        console.error(`Request response not found: ${response.request}`);
+    }
+  }
+
   protected onSocketMessage(message: MessageEvent<any>) {
     super.onSocketMessage(message);
 
@@ -92,39 +134,7 @@ class VideoReceiverController extends VideoController {
         this.showNotification("Connected to host.");
       // fall through
       case MessageTypes.DISPATCH:
-        const latencyAdjustment: number = this.getRealTime() - response.timestamp;
-        const latencyAdjustedSeek = response.time + (latencyAdjustment / 1000);
-        this.maximumSeekPosition = latencyAdjustedSeek;
-        switch (response.request) {
-          case VideoEvent.pause:
-          // fall through
-          case VideoEvent.seeking:
-            this.forcePause();
-            this.forceSeek(latencyAdjustedSeek);
-            break;
-          case VideoEvent.play: {
-            console.log(`Latency adjustment: ${latencyAdjustment}ms`);
-            if (response.time === 0) {
-              this.forceSeek(response.time);
-            } else {
-              this.forceSeek(latencyAdjustedSeek);
-            }
-            this.forcePlay()
-              .then(() => this.waitForBuffering())
-              .catch(console.warn)
-              .finally(() => {
-                const bufferAdjustment = Date.now() - responseReceivedAt + 25;
-                console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
-                this.maximumSeekPosition = Math.max(response.time, this.video.currentTime);
-                this.forceSeek(this.video.currentTime + (bufferAdjustment / 1000));
-                this.maximumSeekPosition = Math.max(this.maximumSeekPosition, this.video.currentTime);
-                this.enableVideoInteraction();
-              });
-            break;
-          }
-          default:
-            console.error(`Request response not found: ${response.request}`);
-        }
+        this.invokeState(response.request, response, responseReceivedAt);
         break;
       case MessageTypes.TIME:
         break;
@@ -151,6 +161,12 @@ class VideoReceiverController extends VideoController {
         this.video.querySelector('track').src = `${BASEURL}/content/${response.data.content}.vtt`;
         this.video.load();
         this.reconnect();
+        break;
+      case MessageTypes.CHECK:
+        if (response.request !== this.getState()) {
+          console.log("State mismatch, synchronizing...");
+          this.invokeState(response.request, response, responseReceivedAt);
+        }
         break;
       default:
         console.error(`Undefined message type detected: ${response.type}`);

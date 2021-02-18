@@ -9,7 +9,8 @@ const MessageTypes = {
   RESPOND: 'respond',
   TIME: 'time',
   TERMINATE: 'terminate',
-  SETUP: 'setup'
+  SETUP: 'setup',
+  CHECK: 'check'
 };
 
 

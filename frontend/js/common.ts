@@ -25,7 +25,8 @@ export const enum MessageTypes {
   RESPOND = 'respond',
   TIME = 'time',
   TERMINATE = 'terminate',
-  SETUP = 'setup'
+  SETUP = 'setup',
+  CHECK = 'check'
 };
 
 export const enum VideoEvent {
@@ -110,6 +111,7 @@ export abstract class VideoController {
   private qualityElement: HTMLButtonElement;
   private isHighQuality: boolean = true;
   private isChangingQuality: boolean;
+  private videoState: VideoEvent = null;
   constructor(video: HTMLVideoElement, socket: WebSocket, toastElement: HTMLElement, isViewer: boolean) {
     this.isViewer = isViewer;
     this.video = video;
@@ -135,6 +137,7 @@ export abstract class VideoController {
 
     let i = 0;
     video.addEventListener(VideoEvent.waiting, () => {
+      this.videoState = VideoEvent.waiting;
       if (!this.isVideoPlaying) {
         const j = i++;
         console.log("Waiting for buffering to finish: " + j);
@@ -151,10 +154,27 @@ export abstract class VideoController {
     });
 
     video.addEventListener(VideoEvent.playing, () => {
+      this.videoState = VideoEvent.playing;
       this.isVideoPlaying = true;
       if (this.doneBufferingResolver) {
         this.doneBufferingResolver();
       }
+    });
+
+    video.addEventListener(VideoEvent.play, () => {
+      this.videoState = VideoEvent.play;
+    });
+
+    video.addEventListener(VideoEvent.pause, () => {
+      this.videoState = VideoEvent.pause;
+    });
+
+    video.addEventListener(VideoEvent.seeking, () => {
+      this.videoState = VideoEvent.seeking;
+    });
+
+    video.addEventListener(VideoEvent.seeked, () => {
+      this.videoState = VideoEvent.seeked;
     });
 
     this.socket.addEventListener('message', this.onSocketMessage.bind(this));
@@ -173,6 +193,10 @@ export abstract class VideoController {
         }
       })
       .catch(console.error);
+  }
+
+  protected getState() {
+    return this.videoState;
   }
 
   protected onQualityChange() {

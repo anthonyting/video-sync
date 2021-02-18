@@ -12,6 +12,7 @@ interface Peer {
 
 class VideoSenderController extends VideoController {
   private peers: Peer[] = [];
+  private stateDispatcherInterval: number;
   constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement, startTime: number = 0) {
     super(video, socket, toast, false);
 
@@ -33,6 +34,17 @@ class VideoSenderController extends VideoController {
     });
 
     this.syncTime();
+    this.setupStateSync();
+  }
+
+  private setupStateSync() {
+    let lastState = this.getState();
+    this.stateDispatcherInterval = window.setInterval(() => {
+      const currentState = this.getState();
+      if (lastState !== currentState) {
+        this.socket.send(this.getDispatchData(this.getState(), MessageTypes.CHECK));
+      }
+    }, 30000);
   }
 
   protected onSocketMessage(message: MessageEvent<any>) {
@@ -88,8 +100,8 @@ class VideoSenderController extends VideoController {
     }
   }
 
-  private getDispatchData(request: VideoEvent) {
-    return JSON.stringify(this.getVideoData(request, MessageTypes.DISPATCH));
+  private getDispatchData(request: VideoEvent, messageType: MessageTypes = MessageTypes.DISPATCH) {
+    return JSON.stringify(this.getVideoData(request, messageType));
   }
 
   private getVideoData(request: VideoEvent, type: MessageTypes) {
