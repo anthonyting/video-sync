@@ -22,7 +22,7 @@ const sessionParser = session({
     maxAge: 86400000
   },
   store: sessionStore,
-  secret: config.session_secret,
+  secret: config.SESSION_SECRET,
   resave: false,
   saveUninitialized: false
 });

@@ -3,9 +3,9 @@ const config = require('../config');
 const basicAuth = require('express-basic-auth');
 
 function requireRole(roles = {
-  general = true,
-  broadcaster = false,
-  admin = false
+  general: true,
+  broadcaster: false,
+  admin: false
 }) {
   const credentials = [];
   if (roles.general) {
