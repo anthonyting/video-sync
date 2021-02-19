@@ -199,7 +199,8 @@ router.get('/search', requireRole({
 });
 
 router.get('/manage', requireRole({
-  broadcaster: true
+  broadcaster: true,
+  admin: true
 }), (req, res, next) => {
   fs.readdir(config.FFMPEG_OUTPUT_PATH)
     .then(contents => {
