@@ -44,6 +44,7 @@ class VideoSenderController extends VideoController {
       if (lastState !== currentState) {
         this.socket.send(this.getDispatchData(this.getState(), MessageTypes.CHECK));
       }
+      lastState = currentState;
     }, 30000);
   }
 
