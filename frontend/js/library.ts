@@ -57,7 +57,7 @@ async function setMetadata(modalElement: Element, modal: bootstrap.Modal, confir
   const modalBody = modalElement.querySelector('.modal-body');
 
   clearNode(modalBody);
-  const ul = document.createElement('ul');
+  const ul = document.createElement('ol');
   for (let i = 0; i < json.length; i++) {
     const li = document.createElement('li');
     const a = document.createElement('a');
