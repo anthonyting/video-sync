@@ -104,7 +104,7 @@ class VideoReceiverController extends VideoController {
           .then(() => this.waitForBuffering())
           .catch(console.warn)
           .finally(() => {
-            const bufferAdjustment = Date.now() - responseReceivedAt;
+            const bufferAdjustment = Date.now() - responseReceivedAt + 50;
             console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
             const bufferAmount = this.video.buffered.length > 0 ? this.video.buffered.end(0) : 0;
             let estimatedAdditionalBuffer = 0;
