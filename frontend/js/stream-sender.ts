@@ -35,7 +35,7 @@ class VideoSenderController extends VideoController {
     this.setVideoEvent(VideoEvent.seeked, () => {
       this.forcePause();
       this.socket.send(this.getDispatchData(VideoEvent.seeking));
-      this.socket.send(this.sendStateSync(this.getState()));
+      this.sendStateSync(this.getState());
     });
 
     this.syncTime();
