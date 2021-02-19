@@ -72,17 +72,17 @@ class VideoReceiverController extends VideoController {
     this.video.addEventListener('loadeddata', onVideoLoad);
   }
 
-  private invokeState(state: VideoEvent, response: {
+  private async invokeState(state: VideoEvent, response: {
     time: number;
     timestamp: number;
     request: VideoEvent;
     type: MessageTypes;
     data: any
   }, responseReceivedAt: number) {
-    const latencyAdjustment: number = this.getRealTime() - response.timestamp + 100;
+    const latencyAdjustment: number = this.getRealTime() - response.timestamp + 50;
     const latencyAdjustedSeek = response.time + (latencyAdjustment / 1000);
-    this.maximumSeekPosition = latencyAdjustedSeek;
-    switch (response.request) {
+    this.maximumSeekPosition = latencyAdjustedSeek + 100;
+    switch (state) {
       case VideoEvent.pause:
       // fall through
       case VideoEvent.seeking:
@@ -91,10 +91,12 @@ class VideoReceiverController extends VideoController {
         break;
       case VideoEvent.play: {
         console.log(`Latency adjustment: ${latencyAdjustment}ms`);
+        const additionalSeek = this.isSeeking ? await this.timeSpentSeeking : 0;
+        console.log(`Additional seek: ${additionalSeek}ms`);
         if (response.time === 0) {
-          this.forceSeek(response.time);
+          this.forceSeek(response.time + additionalSeek / 1000);
         } else {
-          this.forceSeek(latencyAdjustedSeek);
+          this.forceSeek(latencyAdjustedSeek + additionalSeek / 1000);
         }
         this.forcePlay()
           .then(() => this.waitForBuffering())
@@ -114,8 +116,8 @@ class VideoReceiverController extends VideoController {
     }
   }
 
-  protected onSocketMessage(message: MessageEvent<any>) {
-    super.onSocketMessage(message);
+  protected async onSocketMessage(message: MessageEvent<any>) {
+    await super.onSocketMessage(message);
 
     const responseReceivedAt = Date.now();
 
@@ -134,7 +136,7 @@ class VideoReceiverController extends VideoController {
         this.showNotification("Connected to host.");
       // fall through
       case MessageTypes.DISPATCH:
-        this.invokeState(response.request, response, responseReceivedAt);
+        await this.invokeState(response.request, response, responseReceivedAt);
         break;
       case MessageTypes.TIME:
         break;

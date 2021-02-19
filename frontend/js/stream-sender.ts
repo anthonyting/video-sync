@@ -48,8 +48,8 @@ class VideoSenderController extends VideoController {
     }, 30000);
   }
 
-  protected onSocketMessage(message: MessageEvent<any>) {
-    super.onSocketMessage(message);
+  protected async onSocketMessage(message: MessageEvent<any>) {
+    await super.onSocketMessage(message);
 
     const response: {
       type: MessageTypes;

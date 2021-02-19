@@ -112,6 +112,8 @@ export abstract class VideoController {
   private isHighQuality: boolean = true;
   private isChangingQuality: boolean;
   private videoState: VideoEvent = null;
+  protected timeSpentSeeking: Promise<number> = Promise.resolve(0);
+  protected isSeeking: boolean = false;
   constructor(video: HTMLVideoElement, socket: WebSocket, toastElement: HTMLElement, isViewer: boolean) {
     this.isViewer = isViewer;
     this.video = video;
@@ -170,14 +172,16 @@ export abstract class VideoController {
     });
 
     video.addEventListener(VideoEvent.seeking, () => {
+      this.isSeeking = true;
       this.videoState = VideoEvent.seeking;
     });
 
     video.addEventListener(VideoEvent.seeked, () => {
+      this.isSeeking = false;
       this.videoState = VideoEvent.seeked;
     });
 
-    this.socket.addEventListener('message', this.onSocketMessage.bind(this));
+    this.socket.addEventListener('message', this.socketMessageWrapper.bind(this));
 
     this.setupReconnectFallback();
 
@@ -218,7 +222,7 @@ export abstract class VideoController {
     this.video.addEventListener('loadeddata', onVideoLoad);
   }
 
-  protected onSocketMessage(message: MessageEvent<any>) {
+  protected async onSocketMessage(message: MessageEvent<any>) {
     const response: {
       timestamp: number;
       data: any;
@@ -243,6 +247,10 @@ export abstract class VideoController {
     this.socket.close();
   }
 
+  private socketMessageWrapper(message: MessageEvent<any>)  {
+    this.onSocketMessage(message).catch(this.onError.bind(this));
+  }
+
   private setupReconnectFallback() {
     this.socketCallbacks.close = e => {
       console.warn(`Socket closed: ${e.code} ${e.reason}`);
@@ -256,7 +264,7 @@ export abstract class VideoController {
             .then(socket => {
               this.showNotification(`Your server connection has reconnected after ${attempts} attempt${attempts > 1 ? 's' : ''}.`);
               this.socket = socket;
-              this.socket.addEventListener('message', this.onSocketMessage.bind(this));
+              this.socket.addEventListener('message', this.socketMessageWrapper.bind(this));
               this.setupReconnectFallback();
               clearInterval(retryInterval);
             })
@@ -283,6 +291,11 @@ export abstract class VideoController {
 
   protected showNotification(message: string, delay = 2500) {
     this.notification.show(message, delay);
+  }
+
+  protected onError(err: any) {
+    console.error(err);
+    this.notification.show(err.message ? err.message : err);
   }
 
   protected assignTimeDelta(requestSentAt: number, requestReceivedAt: number, responseSentAt: number, responseReceivedAt: number): void {
@@ -343,10 +356,15 @@ export abstract class VideoController {
   protected forceSeek(time: number) {
     console.log("Forcing seek to: " + time);
     this.video.removeEventListener(VideoEvent.seeking, this.callbacks.seeking);
+    const now = Date.now();
     this.video.currentTime = time;
-    this.setVideoEvent(VideoEvent.seeked, () => {
-      this.video.addEventListener(VideoEvent.seeking, this.callbacks.seeking);
+    this.timeSpentSeeking = new Promise(resolve => {
+      this.setVideoEvent(VideoEvent.seeked, () => {
+        this.video.addEventListener(VideoEvent.seeking, this.callbacks.seeking);
+        resolve(Date.now() - now);
+      });
     });
+    return this.timeSpentSeeking;
   }
 
   public static setData(key: string, value: string) {
