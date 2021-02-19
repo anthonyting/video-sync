@@ -92,7 +92,9 @@ class VideoReceiverController extends VideoController {
       case VideoEvent.play: {
         console.log(`Latency adjustment: ${latencyAdjustment}ms`);
         const additionalSeek = this.isSeeking ? await this.timeSpentSeeking : 0;
-        console.log(`Additional seek: ${additionalSeek}ms`);
+        if (additionalSeek) {
+          console.log(`Additional seek: ${additionalSeek}ms`);
+        }
         if (response.time === 0) {
           this.forceSeek(response.time + additionalSeek / 1000);
         } else {
@@ -104,8 +106,16 @@ class VideoReceiverController extends VideoController {
           .finally(() => {
             const bufferAdjustment = Date.now() - responseReceivedAt + 25;
             console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
+            const bufferAmount = this.video.buffered.length > 0 ? this.video.buffered.end(0) : 0;
+            let estimatedAdditionalBuffer = 0;
+            if (bufferAmount < this.video.currentTime + bufferAdjustment) {
+              estimatedAdditionalBuffer = bufferAmount / 5;
+              console.log(`Estimated additional buffer: ${estimatedAdditionalBuffer}ms`);
+            }
             this.maximumSeekPosition = Math.max(response.time, this.video.currentTime);
-            this.forceSeek(this.video.currentTime + (bufferAdjustment / 1000));
+            const newSeekTime = this.video.currentTime + ((bufferAdjustment + estimatedAdditionalBuffer) / 1000);
+            this.forceSeek(newSeekTime);
+            console.log(`New seek time: ${newSeekTime}ms`)
             this.maximumSeekPosition = Math.max(this.maximumSeekPosition, this.video.currentTime);
             this.enableVideoInteraction();
           });
