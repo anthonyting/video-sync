@@ -79,7 +79,7 @@ class VideoReceiverController extends VideoController {
     type: MessageTypes;
     data: any
   }, responseReceivedAt: number) {
-    const latencyAdjustment: number = this.getRealTime() - response.timestamp + 50;
+    const latencyAdjustment: number = this.getRealTime() - response.timestamp;
     const latencyAdjustedSeek = response.time + (latencyAdjustment / 1000);
     this.maximumSeekPosition = latencyAdjustedSeek + 100;
     switch (state) {
@@ -104,7 +104,7 @@ class VideoReceiverController extends VideoController {
           .then(() => this.waitForBuffering())
           .catch(console.warn)
           .finally(() => {
-            const bufferAdjustment = Date.now() - responseReceivedAt + 25;
+            const bufferAdjustment = Date.now() - responseReceivedAt;
             console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
             const bufferAmount = this.video.buffered.length > 0 ? this.video.buffered.end(0) : 0;
             let estimatedAdditionalBuffer = 0;
