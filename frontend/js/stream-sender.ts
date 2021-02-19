@@ -141,14 +141,13 @@ async function onLoad() {
   });
 
   const socket = await setupWebSocket(false);
-
-  continueContainer.classList.add('d-none');
   VideoController.setData('duration', video.duration.toString());
 
   const toast = document.getElementById('toast');
   new VideoSenderController(video, socket, toast, 0);
   startTime.then(time => {
     video.currentTime = time;
+    continueContainer.classList.add('d-none');
   });
   video.removeAttribute('disabled');
 }
