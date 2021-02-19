@@ -43,12 +43,16 @@ class VideoReceiverController extends VideoController {
     });
 
     this.setVideoEvent(VideoEvent.pause, () => {
-      console.log("User paused manually");
-      this.showNotification("Click play again to catch up automatically");
-      this.setVideoEvent(VideoEvent.play, () => {
+      if (this.video.duration === this.video.currentTime) {
         this.disableVideoInteraction();
-        this.reconnect();
-      });
+      } else {
+        console.log("User paused manually");
+        this.showNotification("Click play again to catch up automatically");
+        this.setVideoEvent(VideoEvent.play, () => {
+          this.disableVideoInteraction();
+          this.reconnect();
+        });
+      }
     });
 
     if (this.video.readyState !== 0) {
