@@ -98,8 +98,6 @@ router.post('/terminate/:id', requireRole({
   }
 });
 
-router.use('/library', requireRole({
-  admin: true
-}), require('./library'));
+router.use('/library', require('./library'));
 
 module.exports = router;

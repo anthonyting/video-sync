@@ -13,6 +13,9 @@ const {
 } = require('../app');
 const MessageTypes = require('../src/constants').MessageTypes;
 const redis = require('../src/redis');
+const {
+  requireRole
+} = require('../util');
 
 /**
  * @param {string} route
@@ -37,7 +40,9 @@ async function queryPlex(route, params = new url.URLSearchParams(), fetchBody = 
   return (await request.json()).MediaContainer
 }
 
-router.get('/', (req, res, next) => {
+router.get('/', requireRole({
+  admin: true
+}), (req, res, next) => {
   res.render('library');
 });
 
@@ -75,7 +80,9 @@ async function findRealPath(filepath) {
   return null;
 }
 
-router.post('/queue/:key', async (req, res, next) => {
+router.post('/queue/:key', requireRole({
+  admin: true
+}), async (req, res, next) => {
   try {
     const data = await queryPlex(`/library/metadata/${req.params.key}`);
     const part = data.Metadata[0].Media[0].Part[0];
@@ -123,7 +130,9 @@ router.post('/queue/:key', async (req, res, next) => {
   }
 });
 
-router.get('/metadata', (req, res, next) => {
+router.get('/metadata', requireRole({
+  admin: true
+}), (req, res, next) => {
   if (req.query.key.startsWith('/library/metadata/')) {
     next();
   } else {
@@ -149,7 +158,9 @@ router.get('/metadata', (req, res, next) => {
     .catch(next);
 });
 
-router.get('/search', (req, res, next) => {
+router.get('/search', requireRole({
+  admin: true
+}), (req, res, next) => {
   if (!req.query.search) {
     next(createHttpError(400));
   } else {
@@ -187,7 +198,9 @@ router.get('/search', (req, res, next) => {
     .catch(next);
 });
 
-router.get('/manage', (req, res, next) => {
+router.get('/manage', requireRole({
+  broadcaster: true
+}), (req, res, next) => {
   fs.readdir(config.FFMPEG_OUTPUT_PATH)
     .then(contents => {
       const files = [];
@@ -205,7 +218,9 @@ router.get('/manage', (req, res, next) => {
     .catch(next);
 });
 
-router.post('/manage/set', (req, res, next) => {
+router.post('/manage/set', requireRole({
+  broadcaster: true
+}), (req, res, next) => {
   if (!req.body.content) {
     next(createHttpError(400));
   } else {
