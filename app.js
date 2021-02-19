@@ -88,7 +88,7 @@ class StreamerSocket {
             throw new Error("Streamer message not an object");
           }
         } catch (err) {
-          console.warn("Error parsing host message: ", err);
+          console.warn("Error parsing host message: ", err.message);
           return;
         }
 
@@ -280,7 +280,7 @@ function initApp(app, server) {
                 throw new Error("Client message not an object");
               }
             } catch (err) {
-              console.warn("Error parsing client message: ", err);
+              console.warn("Error parsing client message: ", err.message);
               return;
             }
             switch (parsed.type) {
