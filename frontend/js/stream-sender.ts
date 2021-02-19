@@ -21,16 +21,21 @@ class VideoSenderController extends VideoController {
     }
 
     this.setVideoEvent(VideoEvent.pause, () => {
-      this.socket.send(this.getDispatchData(VideoEvent.pause));
+      if (!this.isSeeking) {
+        this.socket.send(this.getDispatchData(VideoEvent.pause));
+      }
     });
 
     this.setVideoEvent(VideoEvent.play, () => {
-      this.socket.send(this.getDispatchData(VideoEvent.play));
+      if (!this.isSeeking) {
+        this.socket.send(this.getDispatchData(VideoEvent.play));
+      }
     });
 
     this.setVideoEvent(VideoEvent.seeked, () => {
       this.forcePause();
       this.socket.send(this.getDispatchData(VideoEvent.seeking));
+      this.socket.send(this.sendStateSync(this.getState()));
     });
 
     this.syncTime();
@@ -40,12 +45,16 @@ class VideoSenderController extends VideoController {
   private setupStateSync() {
     let lastState = this.getState();
     this.stateDispatcherInterval = window.setInterval(() => {
-      const currentState = this.getState();
-      if (lastState !== currentState) {
-        this.socket.send(this.getDispatchData(this.getState(), MessageTypes.CHECK));
-      }
-      lastState = currentState;
+      lastState = this.sendStateSync(lastState);
     }, 30000);
+  }
+
+  private sendStateSync(lastState: VideoEvent) {
+    const currentState = this.getState();
+    if (lastState !== currentState) {
+      this.socket.send(this.getDispatchData(this.getState(), MessageTypes.CHECK));
+    }
+    return currentState;
   }
 
   protected async onSocketMessage(message: MessageEvent<any>) {
