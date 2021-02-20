@@ -220,7 +220,8 @@ router.get('/manage', requireRole({
 });
 
 router.post('/manage/set', requireRole({
-  broadcaster: true
+  broadcaster: true,
+  admin: true
 }), (req, res, next) => {
   if (!req.body.content) {
     next(createHttpError(400));
