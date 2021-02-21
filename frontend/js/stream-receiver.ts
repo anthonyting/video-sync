@@ -44,7 +44,7 @@ class VideoReceiverController extends VideoController {
 
     this.setVideoEvent(VideoEvent.pause, () => {
       if (this.video.duration === this.video.currentTime) {
-        this.disableVideoInteraction();
+        this.showNotification("Video ended");
       } else {
         console.log("User paused manually");
         this.showNotification("Click play again to catch up automatically");
