@@ -193,7 +193,10 @@ function initApp(app, server) {
   app.use(express.urlencoded({
     extended: false
   }));
-  app.use(BASEURL, express.static(path.join(__dirname, 'public')));
+  app.use(BASEURL, express.static(path.join(__dirname, 'public'), {
+    cacheControl: 'private',
+    maxAge: 604800 // a week
+  }));
   app.use(sessionParser);
 
   app.set('trust proxy', 1);
