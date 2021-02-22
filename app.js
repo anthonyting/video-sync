@@ -194,8 +194,7 @@ function initApp(app, server) {
     extended: false
   }));
   app.use(BASEURL, express.static(path.join(__dirname, 'public'), {
-    cacheControl: 'private',
-    maxAge: 604800 // a week
+    maxAge: 604800 * 1000 // a week
   }));
   app.use(sessionParser);
 
