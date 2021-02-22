@@ -23,6 +23,8 @@ const ORIGINAL_INPUT_PATHS = JSON.parse(process.env.ORIGINAL_INPUT_PATHS);
 
 const CONTENT_KEY = "CONTENT_KEY";
 
+const REDIS_URL = process.env.REDIS_URL;
+
 if ([
     GENERAL_USERNAME,
     GENERAL_PASSWORD,
@@ -36,7 +38,8 @@ if ([
     FFMPEG_OUTPUT_PATH,
     CONTENT_INPUT_PATHS,
     ORIGINAL_INPUT_PATHS,
-    CONTENT_KEY
+    CONTENT_KEY,
+    REDIS_URL
   ].includes(undefined)) {
   console.warn("Some environment variables are undefined.");
 }
@@ -64,5 +67,6 @@ module.exports = {
   CONTENT_INPUT_PATHS,
   ORIGINAL_INPUT_PATHS,
   FFMPEG_OUTPUT_PATH,
-  CONTENT_KEY
+  CONTENT_KEY,
+  REDIS_URL
 };
