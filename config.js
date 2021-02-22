@@ -54,7 +54,7 @@ const config = {
 
 for (const element in config) {
   if (!config[element]) {
-    throw new Error(`Missing config option for: ${config}`);
+    throw new Error(`Missing config option for: ${element}`);
   }
 }
 
