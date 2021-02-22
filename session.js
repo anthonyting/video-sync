@@ -1,10 +1,11 @@
 const session = require('express-session');
+
+const RedisStore = require('connect-redis')(session);
 const config = require('./config');
 let sessionStore= new RedisStore({
   client: redis
 });
 const redis = require('./src/redis');
-const RedisStore = require('connect-redis')(session);
 console.log("Setting up redis session store");
 const sessionParser = session({
   cookie: {
