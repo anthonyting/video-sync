@@ -10,7 +10,12 @@ services:
   app:
     build: ./
     volumes:
-      - ./:/var/www/app
+      - type: bind
+        source: /content
+        target: /content
+      - type: bind
+        source: /output
+        target: /output
     links:
       - redis
     ports:
