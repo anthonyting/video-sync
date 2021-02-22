@@ -25,25 +25,6 @@ const CONTENT_KEY = "CONTENT_KEY";
 
 const REDIS_URL = process.env.REDIS_URL;
 
-if ([
-    GENERAL_USERNAME,
-    GENERAL_PASSWORD,
-    ADMIN_USERNAME,
-    ADMIN_PASSWORD,
-    SESSION_SECRET,
-    BASEURL,
-    SITE_URL,
-    PLEX_IP,
-    PLEX_TOKEN,
-    FFMPEG_OUTPUT_PATH,
-    CONTENT_INPUT_PATHS,
-    ORIGINAL_INPUT_PATHS,
-    CONTENT_KEY,
-    REDIS_URL
-  ].includes(undefined)) {
-  console.warn("Some environment variables are undefined.");
-}
-
 const GENERAL = {};
 GENERAL[GENERAL_USERNAME] = GENERAL_PASSWORD;
 
@@ -53,7 +34,7 @@ ADMIN[ADMIN_USERNAME] = ADMIN_PASSWORD;
 const BROADCASTER = {};
 BROADCASTER[BROADCASTER_USERNAME] = BROADCASTER_PASSWORD;
 
-module.exports = {
+const config = {
   CREDENTIALS: {
     GENERAL: GENERAL,
     ADMIN: ADMIN,
@@ -70,3 +51,11 @@ module.exports = {
   CONTENT_KEY,
   REDIS_URL
 };
+
+for (const element in config) {
+  if (!config[element]) {
+    throw new Error(`Missing config option for: ${config}`);
+  }
+}
+
+module.exports = config;
