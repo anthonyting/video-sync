@@ -312,7 +312,7 @@ export abstract class VideoController {
     if (this.serverTimeDelta === null || isNaN(this.serverTimeDelta)) {
       throw new TypeError("Server time delta not yet initialized");
     }
-    return Date.now() - this.serverTimeDelta;
+    return Date.now() + this.serverTimeDelta;
   }
 
   protected reconnect() {
