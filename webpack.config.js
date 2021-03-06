@@ -54,7 +54,8 @@ module.exports = env => /** @type {import('webpack').Configuration} */ ({
     new webpack.DefinePlugin({
       WEBSOCKET_SERVER: JSON.stringify(env.NODE_ENV === 'production' ? 'wss://' + config.SITE_URL + config.BASEURL : 'ws://localhost:3000'),
       BASEURL: JSON.stringify(config.BASEURL),
-      SITE_URL: JSON.stringify(config.SITE_URL)
+      SITE_URL: JSON.stringify(config.SITE_URL),
+      CONTENT_BASE_URL: JSON.stringify(config.CONTENT_BASE_URL)
     }),
     new MiniCssExtractPlugin({
       filename: '[name]-[contenthash].min.css'

@@ -100,8 +100,8 @@ class VideoSenderController extends VideoController {
         break;
       case MessageTypes.SETUP:
         this.video.pause();
-        this.video.querySelector('source').src = `${BASEURL}/content/${response.data.content}.mp4`;
-        this.video.querySelector('track').src = `${BASEURL}/content/${response.data.content}.vtt`;
+        this.video.querySelector('source').src = `${CONTENT_BASE_URL}/${response.data.content}.mp4`;
+        this.video.querySelector('track').src = `${CONTENT_BASE_URL}/${response.data.content}.vtt`;
         this.video.load();
         break;
       default:
