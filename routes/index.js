@@ -22,7 +22,8 @@ router.get('/', requireRole({
     } else {
       res.render('receive', {
         title: 'secret',
-        CONTENT: reply
+        CONTENT: reply,
+        CONTENT_BASE_URL: CONTENT_BASE_URL
       });
     }
   });
@@ -40,7 +41,8 @@ router.get('/broadcast', requireRole({
     } else {
       res.render('broadcast', {
         title: 'admin_page',
-        CONTENT: reply
+        CONTENT: reply,
+        CONTENT_BASE_URL: CONTENT_BASE_URL
       });
     }
   });
