@@ -23,7 +23,7 @@ router.get('/', requireRole({
       res.render('receive', {
         title: 'secret',
         CONTENT: reply,
-        CONTENT_BASE_URL: CONTENT_BASE_URL
+        CONTENT_BASE_URL: config.CONTENT_BASE_URL
       });
     }
   });
@@ -42,7 +42,7 @@ router.get('/broadcast', requireRole({
       res.render('broadcast', {
         title: 'admin_page',
         CONTENT: reply,
-        CONTENT_BASE_URL: CONTENT_BASE_URL
+        CONTENT_BASE_URL: config.CONTENT_BASE_URL
       });
     }
   });
