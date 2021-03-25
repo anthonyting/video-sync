@@ -1,6 +1,8 @@
 node_modules/
 .env
 dist/
+content/
+output/
 
 # I don't want it committed
 package-lock.json

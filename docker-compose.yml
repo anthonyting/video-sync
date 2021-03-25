@@ -11,10 +11,10 @@ services:
     build: ./
     volumes:
       - type: bind
-        source: /content
+        source: ./content
         target: /content
       - type: bind
-        source: /output
+        source: ./output
         target: /output
     links:
       - redis
@@ -22,5 +22,3 @@ services:
       - 3000:3000
     env_file:
       - ./.env
-    environment: 
-      - REDIS_URL=redis://cache

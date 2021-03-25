@@ -1,17 +1,15 @@
 FROM node:14
-RUN apt-get -y update
-RUN apt-get -y upgrade
-RUN apt-get install -y ffmpeg
+
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update && apt-get -y upgrade && apt-get install -y ffmpeg
 
 WORKDIR /var/www/app/
-
-COPY ./package.* ./yarn.* /var/www/app/
-
-RUN yarn install
-
 COPY ./ ./
 
-RUN yarn build-prod
+RUN mkdir -p /nonexistent
+RUN mkdir -p /content /output
+RUN chown -R nobody:nogroup /var/www/app/ /nonexistent/ /output /content
 
+USER nobody
+RUN yarn install && yarn build-prod
 CMD ["yarn", "start"]
-
