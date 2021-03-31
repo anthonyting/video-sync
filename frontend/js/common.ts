@@ -326,16 +326,19 @@ export abstract class VideoController {
     this.video.addEventListener(type, this.callbacks[type]);
   }
 
-  protected forcePause() {
+  protected forcePause(): Promise<void> {
     console.log("Forcing pause");
     this.video.removeEventListener(VideoEvent.pause, this.callbacks.pause);
     this.video.pause();
-    setTimeout(() => {
-      // https://html.spec.whatwg.org/multipage/media.html#event-media-pause
-      // If not in a setTimeout(), addEventListener fires even though pause() returns before
-      // (tested in Firefox and Chrome). Seems like they implement the spec incorrectly?
-      this.video.addEventListener(VideoEvent.pause, this.callbacks.pause);
-    }, 0);
+    return new Promise(resolve => {
+      setTimeout(() => {
+        // https://html.spec.whatwg.org/multipage/media.html#event-media-pause
+        // If not in a setTimeout(), addEventListener fires even though pause() returns before
+        // (tested in Firefox and Chrome). Seems like they implement the spec incorrectly?
+        this.video.addEventListener(VideoEvent.pause, this.callbacks.pause);
+        resolve();
+      }, 0);
+    });
   }
 
   protected forcePlay(): Promise<void> {

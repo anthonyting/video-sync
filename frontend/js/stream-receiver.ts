@@ -99,7 +99,7 @@ class VideoReceiverController extends VideoController {
       case VideoEvent.pause:
       // fall through
       case VideoEvent.seeking:
-        this.forcePause();
+        await this.forcePause();
         this.forceSeek(latencyAdjustedSeek);
         break;
       case VideoEvent.play: {
@@ -166,7 +166,7 @@ class VideoReceiverController extends VideoController {
       case MessageTypes.DISCONNECT:
         this.showNotification("The host disconnected. Wait for them to reconnect.");
         this.hostDisconnected = true;
-        this.forcePause();
+        await this.forcePause();
         break;
       case MessageTypes.CONNECT:
         if (this.hostDisconnected) {
@@ -176,12 +176,12 @@ class VideoReceiverController extends VideoController {
         break;
       case MessageTypes.TERMINATE:
         this.showNotification("Your connection has been terminated by the host", -1);
-        this.forcePause();
+        await this.forcePause();
         this.disableVideoInteraction();
         this.forceCloseSocket();
         break;
       case MessageTypes.SETUP:
-        this.forcePause();
+        await this.forcePause();
         this.video.querySelector('source').src = `${CONTENT_BASE_URL}${response.data.content}.mp4`;
         this.video.querySelector('track').src = `${CONTENT_BASE_URL}${response.data.content}.vtt`;
         this.video.load();
@@ -201,10 +201,11 @@ class VideoReceiverController extends VideoController {
 
   protected reconnect() {
     super.reconnect();
-    this.forcePause();
-    this.socket.send(JSON.stringify({
-      'type': MessageTypes.RECONNECT
-    }));
+    this.forcePause().then(() => {
+      this.socket.send(JSON.stringify({
+        'type': MessageTypes.RECONNECT
+      }));
+    });
   }
 }
 

@@ -33,9 +33,10 @@ class VideoSenderController extends VideoController {
     });
 
     this.setVideoEvent(VideoEvent.seeked, () => {
-      this.forcePause();
-      this.socket.send(this.getDispatchData(VideoEvent.seeking));
-      this.sendStateSync(this.getState());
+      this.forcePause().then(() => {
+        this.socket.send(this.getDispatchData(VideoEvent.seeking));
+        this.sendStateSync(this.getState());
+      });
     });
 
     this.syncTime();
@@ -121,6 +122,11 @@ class VideoSenderController extends VideoController {
       timestamp: Date.now() + this.serverTimeDelta,
       request: request
     };
+  }
+
+  protected forcePause(): Promise<void> {
+    console.trace("Debug pause trace");
+    return super.forcePause();
   }
 }
 
