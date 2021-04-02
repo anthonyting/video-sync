@@ -4,5 +4,7 @@ dist/
 content/
 output/
 
+docker-compose.yml
+
 # I don't want it committed
 package-lock.json
