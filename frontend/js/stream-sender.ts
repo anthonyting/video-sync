@@ -20,24 +20,24 @@ class VideoSenderController extends VideoController {
       video.currentTime = startTime;
     }
 
-    this.setVideoEvent(VideoEvent.pause, () => {
-      if (!this.isSeeking) {
-        this.socket.send(this.getDispatchData(VideoEvent.pause));
-      }
-    });
+    // this.setVideoEvent(VideoEvent.pause, () => {
+    //   if (!this.isSeeking) {
+    //     this.socket.send(this.getDispatchData(VideoEvent.pause));
+    //   }
+    // });
 
-    this.setVideoEvent(VideoEvent.play, () => {
-      if (!this.isSeeking) {
-        this.socket.send(this.getDispatchData(VideoEvent.play));
-      }
-    });
+    // this.setVideoEvent(VideoEvent.play, () => {
+    //   if (!this.isSeeking) {
+    //     this.socket.send(this.getDispatchData(VideoEvent.play));
+    //   }
+    // });
 
-    this.setVideoEvent(VideoEvent.seeked, () => {
-      this.forcePause().then(() => {
-        this.socket.send(this.getDispatchData(VideoEvent.seeking));
-        this.sendStateSync(this.getState());
-      });
-    });
+    // this.setVideoEvent(VideoEvent.seeked, () => {
+    //   this.forcePause().then(() => {
+    //     this.socket.send(this.getDispatchData(VideoEvent.seeking));
+    //     this.sendStateSync(this.getState());
+    //   });
+    // });
 
     this.syncTime();
     this.setupStateSync();
@@ -59,6 +59,8 @@ class VideoSenderController extends VideoController {
   }
 
   protected async onSocketMessage(message: MessageEvent<any>) {
+    const responseReceivedAt = Date.now();
+
     await super.onSocketMessage(message);
 
     const response: {
@@ -66,6 +68,8 @@ class VideoSenderController extends VideoController {
       id: string;
       timestamp: number;
       data: any;
+      request: VideoEvent,
+      time: number
     } = JSON.parse(message.data);
 
     const id = response.id;
@@ -97,6 +101,15 @@ class VideoSenderController extends VideoController {
           }
         }
         break;
+      case MessageTypes.DISPATCH:
+        await this.invokeState(response.request, {
+          request: response.request,
+          time: response.time,
+          timestamp: response.timestamp,
+          data: response.data,
+          type: response.type
+        }, responseReceivedAt);
+        break;
       case MessageTypes.TIME:
         break;
       case MessageTypes.SETUP:
@@ -111,21 +124,7 @@ class VideoSenderController extends VideoController {
     }
   }
 
-  private getDispatchData(request: VideoEvent, messageType: MessageTypes = MessageTypes.DISPATCH) {
-    return JSON.stringify(this.getVideoData(request, messageType));
-  }
-
-  private getVideoData(request: VideoEvent, type: MessageTypes) {
-    return {
-      type: type,
-      time: this.video.currentTime,
-      timestamp: Date.now() + this.serverTimeDelta,
-      request: request
-    };
-  }
-
   protected forcePause(): Promise<void> {
-    console.trace("Debug pause trace");
     return super.forcePause();
   }
 }

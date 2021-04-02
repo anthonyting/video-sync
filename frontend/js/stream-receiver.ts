@@ -6,54 +6,54 @@ import {
 } from './common'
 
 class VideoReceiverController extends VideoController {
-  private maximumSeekPosition: number = 0;
   private hostDisconnected: boolean = false;
   /** Used when browser does not allow autoplay */
   private reconnectOnPlay: boolean = false;
+  private maximumSeekPosition: number = 0;
   constructor(video: HTMLVideoElement, socket: WebSocket, toast: HTMLElement) {
     super(video, socket, toast, true);
 
-    this.setVideoEvent(VideoEvent.seeking, () => {
-      console.log("User seeking manually");
-      if (video.currentTime - 1 > this.maximumSeekPosition) {
-        this.showNotification("Seeking is disabled");
-        this.forceSeek(this.maximumSeekPosition);
-        this.reconnect();
-      }
-    });
+    // this.setVideoEvent(VideoEvent.seeking, () => {
+    //   console.log("User seeking manually");
+    //   if (video.currentTime - 1 > this.maximumSeekPosition) {
+    //     this.showNotification("Seeking is disabled");
+    //     this.forceSeek(this.maximumSeekPosition);
+    //     this.reconnect();
+    //   }
+    // });
 
-    this.video.addEventListener(VideoEvent.seeked, () => {
-      if (video.currentTime - 1 >= this.maximumSeekPosition) {
-        console.log("User seeked manually");
-        this.forceSeek(this.maximumSeekPosition);
-        this.reconnect();
-      }
-    });
+    // this.video.addEventListener(VideoEvent.seeked, () => {
+    //   if (video.currentTime - 1 >= this.maximumSeekPosition) {
+    //     console.log("User seeked manually");
+    //     this.forceSeek(this.maximumSeekPosition);
+    //     this.reconnect();
+    //   }
+    // });
 
-    this.setVideoEvent(VideoEvent.play, () => {
-      if (this.reconnectOnPlay) {
-        this.reconnectOnPlay = false;
-        this.reconnect();
-      } else {
-        console.log("User attempting to play manually");
-        this.forcePause();
-        this.showNotification("Wait for the host to start the video");
-        this.forceSeek(this.maximumSeekPosition);
-      }
-    });
+    // this.setVideoEvent(VideoEvent.play, () => {
+    //   if (this.reconnectOnPlay) {
+    //     this.reconnectOnPlay = false;
+    //     this.reconnect();
+    //   } else {
+    //     console.log("User attempting to play manually");
+    //     this.forcePause();
+    //     this.showNotification("Wait for the host to start the video");
+    //     this.forceSeek(this.maximumSeekPosition);
+    //   }
+    // });
 
-    this.setVideoEvent(VideoEvent.pause, () => {
-      if (this.video.duration === this.video.currentTime) {
-        this.showNotification("Video ended");
-      } else {
-        console.log("User paused manually");
-        this.showNotification("Click play again to catch up automatically");
-        this.setVideoEvent(VideoEvent.play, () => {
-          this.disableVideoInteraction();
-          this.reconnect();
-        });
-      }
-    });
+    // this.setVideoEvent(VideoEvent.pause, () => {
+    //   if (this.video.duration === this.video.currentTime) {
+    //     this.showNotification("Video ended");
+    //   } else {
+    //     console.log("User paused manually");
+    //     this.showNotification("Click play again to catch up automatically");
+    //     this.setVideoEvent(VideoEvent.play, () => {
+    //       this.disableVideoInteraction();
+    //       this.reconnect();
+    //     });
+    //   }
+    // });
 
     if (this.video.readyState !== 0) {
       this.forcePlay().then(() => {
@@ -83,60 +83,6 @@ class VideoReceiverController extends VideoController {
       this.video.removeEventListener('loadeddata', onVideoLoad);
     };
     this.video.addEventListener('loadeddata', onVideoLoad);
-  }
-
-  private async invokeState(state: VideoEvent, response: {
-    time: number;
-    timestamp: number;
-    request: VideoEvent;
-    type: MessageTypes;
-    data: any
-  }, responseReceivedAt: number) {
-    const latencyAdjustment: number = this.getRealTime() - response.timestamp;
-    const latencyAdjustedSeek = response.time + (latencyAdjustment / 1000);
-    this.maximumSeekPosition = latencyAdjustedSeek + 100;
-    switch (state) {
-      case VideoEvent.pause:
-      // fall through
-      case VideoEvent.seeking:
-        await this.forcePause();
-        this.forceSeek(latencyAdjustedSeek);
-        break;
-      case VideoEvent.play: {
-        console.log(`Latency adjustment: ${latencyAdjustment}ms`);
-        const additionalSeek = this.isSeeking ? await this.timeSpentSeeking : 0;
-        if (additionalSeek) {
-          console.log(`Additional seek: ${additionalSeek}ms`);
-        }
-        if (response.time === 0) {
-          this.forceSeek(response.time + additionalSeek / 1000);
-        } else {
-          this.forceSeek(latencyAdjustedSeek + additionalSeek / 1000);
-        }
-        this.forcePlay()
-          .then(() => this.waitForBuffering())
-          .catch(console.warn)
-          .finally(() => {
-            const bufferAdjustment = Date.now() - responseReceivedAt + 50;
-            console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
-            const bufferAmount = this.video.buffered.length > 0 ? this.video.buffered.end(0) : 0;
-            let estimatedAdditionalBuffer = 0;
-            if (bufferAmount < this.video.currentTime + bufferAdjustment) {
-              estimatedAdditionalBuffer = bufferAmount / 5;
-              console.log(`Estimated additional buffer: ${estimatedAdditionalBuffer}ms`);
-            }
-            this.maximumSeekPosition = Math.max(response.time, this.video.currentTime);
-            const newSeekTime = this.video.currentTime + ((bufferAdjustment + estimatedAdditionalBuffer) / 1000);
-            this.forceSeek(newSeekTime);
-            console.log(`New seek time: ${newSeekTime}ms`)
-            this.maximumSeekPosition = Math.max(this.maximumSeekPosition, this.video.currentTime);
-            this.enableVideoInteraction();
-          });
-        break;
-      }
-      default:
-        console.error(`Request response not found: ${response.request}`);
-    }
   }
 
   protected async onSocketMessage(message: MessageEvent<any>) {

@@ -174,6 +174,24 @@ export abstract class VideoController {
       this.isSeeking = false;
     });
 
+    this.setVideoEvent(VideoEvent.pause, () => {
+      if (!this.isSeeking) {
+        this.socket.send(this.getDispatchData(VideoEvent.pause));
+      }
+    });
+
+    this.setVideoEvent(VideoEvent.seeked, () => {
+      this.forcePause().then(() => {
+        this.socket.send(this.getDispatchData(VideoEvent.seeking));
+      });
+    });
+
+    this.setVideoEvent(VideoEvent.play, () => {
+      if (!this.isSeeking) {
+        this.socket.send(this.getDispatchData(VideoEvent.play));
+      }
+    });
+
     this.socket.addEventListener('message', this.socketMessageWrapper.bind(this));
 
     this.setupReconnectFallback();
@@ -191,6 +209,65 @@ export abstract class VideoController {
       })
       .catch(console.error);
   }
+
+  protected async invokeState(state: VideoEvent, response: {
+    time: number;
+    timestamp: number;
+    request: VideoEvent;
+    type: MessageTypes;
+    data: any
+  }, responseReceivedAt: number) {
+    const latencyAdjustment: number = this.getRealTime() - response.timestamp;
+    const latencyAdjustedSeek = response.time + (latencyAdjustment / 1000);
+    switch (state) {
+      case VideoEvent.pause:
+      // fall through
+      case VideoEvent.seeking:
+        const seekDifference = Math.abs(latencyAdjustedSeek - this.video.currentTime);
+        if (seekDifference < 0.125) {
+          console.log(`Seek difference: ${seekDifference.toFixed(4)}s. Ignoring seek request.`);
+          return;
+        }
+        await this.forcePause();
+        this.forceSeek(latencyAdjustedSeek);
+        break;
+      case VideoEvent.playing:
+        // fall through
+      case VideoEvent.play: {
+        console.log(`Latency adjustment: ${latencyAdjustment}ms`);
+        const additionalSeek = this.isSeeking ? await this.timeSpentSeeking : 0;
+        if (additionalSeek) {
+          console.log(`Additional seek: ${additionalSeek}ms`);
+        }
+        if (response.time === 0) {
+          this.forceSeek(response.time + additionalSeek / 1000);
+        } else {
+          this.forceSeek(latencyAdjustedSeek + additionalSeek / 1000);
+        }
+        this.forcePlay()
+          .then(() => this.waitForBuffering())
+          .catch(console.warn)
+          .finally(() => {
+            const bufferAdjustment = Date.now() - responseReceivedAt + 50;
+            console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
+            const bufferAmount = this.video.buffered.length > 0 ? this.video.buffered.end(0) : 0;
+            let estimatedAdditionalBuffer = 0;
+            if (bufferAmount < this.video.currentTime + bufferAdjustment) {
+              estimatedAdditionalBuffer = bufferAmount / 5;
+              console.log(`Estimated additional buffer: ${estimatedAdditionalBuffer}ms`);
+            }
+            const newSeekTime = this.video.currentTime + ((bufferAdjustment + estimatedAdditionalBuffer) / 1000);
+            this.forceSeek(newSeekTime);
+            console.log(`New seek time: ${newSeekTime}ms`)
+            this.enableVideoInteraction();
+          });
+        break;
+      }
+      default:
+        console.error(`Request response not found: ${response.request}`);
+    }
+  }
+
 
   protected getState() {
     return this.videoState;
@@ -224,6 +301,19 @@ export abstract class VideoController {
     if (response.type === MessageTypes.TIME) {
       this.assignTimeDelta(response.data.requestSentAt, response.timestamp, response.data.responseSentAt, Date.now());
     }
+  }
+
+  protected getDispatchData(request: VideoEvent, messageType: MessageTypes = MessageTypes.DISPATCH) {
+    return JSON.stringify(this.getVideoData(request, messageType));
+  }
+
+  protected getVideoData(request: VideoEvent, type: MessageTypes) {
+    return {
+      type: type,
+      time: this.video.currentTime,
+      timestamp: Date.now() + this.serverTimeDelta,
+      request: request
+    };
   }
 
   protected enableVideoInteraction() {
@@ -343,22 +433,28 @@ export abstract class VideoController {
 
   protected forcePlay(): Promise<void> {
     console.log("Forcing play");
+    this.video.removeEventListener(VideoEvent.seeked, this.callbacks.seeked);
     this.video.removeEventListener(VideoEvent.play, this.callbacks.play);
     return this.video.play().finally(() => {
       this.video.addEventListener(VideoEvent.play, this.callbacks.play);
+      this.video.addEventListener(VideoEvent.seeked, this.callbacks.seeked);
     });
   }
 
   protected forceSeek(time: number) {
     console.log("Forcing seek to: " + time);
     this.video.removeEventListener(VideoEvent.seeking, this.callbacks.seeking);
+    this.video.removeEventListener(VideoEvent.seeked, this.callbacks.seeked);
     const now = Date.now();
     this.video.currentTime = time;
     this.timeSpentSeeking = new Promise(resolve => {
-      this.setVideoEvent(VideoEvent.seeked, () => {
+      const onSeeked = () => {
         this.video.addEventListener(VideoEvent.seeking, this.callbacks.seeking);
+        this.video.addEventListener(VideoEvent.seeked, this.callbacks.seeked);
+        this.video.removeEventListener(VideoEvent.seeked, onSeeked);
         resolve(Date.now() - now);
-      });
+      };
+      this.video.addEventListener(VideoEvent.seeked, onSeeked);
     });
     return this.timeSpentSeeking;
   }

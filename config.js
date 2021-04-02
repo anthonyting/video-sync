@@ -56,7 +56,7 @@ const config = {
 };
 
 for (const element in config) {
-  if (!config[element]) {
+  if (config[element] === undefined) {
     throw new Error(`Missing config option for: ${element}`);
   }
 }

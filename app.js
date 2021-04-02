@@ -45,6 +45,26 @@ function sendTime(ws, requestReceivedAt, requestSentAt) {
   }));
 }
 
+/**
+ * 
+ * @param {*} message 
+ * @param {import('ws') | StreamerSocket} additionalSocket 
+ * @param {*} currentSocket 
+ */
+function sendToAllClients(message, additionalSocket, currentSocket) {
+  clients.forEach(clientSessions => {
+    clientSessions.forEach(session => {
+      if (currentSocket !== session.socket) {
+        session.socket.send(JSON.stringify(message));
+      }
+    });
+  });
+
+  if (additionalSocket && additionalSocket !== currentSocket) {
+    additionalSocket.send(message);
+  }
+}
+
 class StreamerSocket {
 
   constructor() {
@@ -68,14 +88,10 @@ class StreamerSocket {
       ws
     });
 
-    clients.forEach(clientSessions => {
-      for (let i = 0, n = clientSessions.length; i < n; i++) {
-        clientSessions[i].socket.send(JSON.stringify({
-          type: MessageTypes.CONNECT,
-          timestamp: Date.now()
-        }));
-      }
-    });
+    sendToAllClients({
+      type: MessageTypes.CONNECT,
+      timestamp: Date.now()
+    }, null, null);
 
     ws.on('message', msg => {
       try {
@@ -96,11 +112,7 @@ class StreamerSocket {
           case MessageTypes.CHECK:
             // fall through
           case MessageTypes.DISPATCH:
-            clients.forEach(clientSessions => {
-              for (let i = 0, n = clientSessions.length; i < n; i++) {
-                clientSessions[i].socket.send(msg);
-              }
-            });
+            sendToAllClients(parsed, null, null);
             break;
           case MessageTypes.RESPOND: {
             const clientSessions = clients.get(parsed.client);
@@ -250,26 +262,26 @@ function initApp(app, server) {
       const queryParams = new url.URLSearchParams(req._parsedUrl.search);
       const isViewer = Boolean(queryParams.get('isViewer'));
 
-      const sessionID = req.sessionID;
+      const sessionId = req.sessionID;
       if (isViewer && req.session.hasAccess) {
-        console.log(`Viewer connected: ${sessionID}`);
+        console.log(`Viewer connected: ${sessionId}`);
         ws.on('close', (code, reason) => {
           streamerSocket.send({
             type: MessageTypes.DISCONNECT,
-            id: sessionID
+            id: sessionId
           });
-          console.log(`${sessionID} disconnected: ${reason ? `${code}:${reason}` : code}`);
-          const sessions = clients.get(sessionID);
+          console.log(`${sessionId} disconnected: ${reason ? `${code}:${reason}` : code}`);
+          const sessions = clients.get(sessionId);
           const activeSessionIndex = sessions.findIndex(element => element.socket === ws);
           if (activeSessionIndex !== -1) {
             delete sessions[activeSessionIndex].keepalive;
             delete sessions[activeSessionIndex].socket;
             sessions.splice(activeSessionIndex, 1);
           } else {
-            console.warn(`Could not find active session in session array for ${sessionID}`);
+            console.warn(`Could not find active session in session array for ${sessionId}`);
           }
           if (sessions.length === 0) {
-            clients.delete(sessionID);
+            clients.delete(sessionId);
           }
         });
         ws.on('message', msg => {
@@ -289,11 +301,20 @@ function initApp(app, server) {
               case MessageTypes.RECONNECT:
                 streamerSocket.send({
                   type: MessageTypes.RECONNECT,
-                  id: sessionID
+                  id: sessionId
                 });
                 break;
               case MessageTypes.TIME:
                 sendTime(ws, requestReceivedAt, parsed.timestamp);
+                break;
+              case MessageTypes.DISPATCH:
+                console.log(`Client dispatch from ${sessionId}: ${parsed.request}`)
+                sendToAllClients({
+                  type: MessageTypes.DISPATCH,
+                  time: parsed.time,
+                  timestamp: parsed.timestamp,
+                  request: parsed.request
+                }, streamerSocket, ws);
                 break;
               default:
                 console.error(`Undefined message type received: ${parsed.type}`);
@@ -304,10 +325,10 @@ function initApp(app, server) {
           }
         });
 
-        const clientSessions = clients.get(sessionID);
+        const clientSessions = clients.get(sessionId);
         const ip = (req.headers['x-forwarded-for'] || req.connection.remoteAddress || '').split(',')[0].trim();
         if (!clientSessions) {
-          clients.set(sessionID, [{
+          clients.set(sessionId, [{
             socket: ws,
             keepalive: new KeepAlive({
               ws
@@ -325,11 +346,11 @@ function initApp(app, server) {
         }
         streamerSocket.send({
           type: MessageTypes.CONNECT,
-          id: sessionID
+          id: sessionId
         });
       } else if (req.session.hasStreamAccess) {
-        console.log(`Connecting host: ${sessionID}`);
-        streamerSocket.setStreamer(ws, sessionID);
+        console.log(`Connecting host: ${sessionId}`);
+        streamerSocket.setStreamer(ws, sessionId);
       } else {
         return ws.close(1008, "Unauthorized");
       }
