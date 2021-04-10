@@ -221,6 +221,9 @@ export abstract class VideoController {
     const latencyAdjustedSeek = response.time + (latencyAdjustment / 1000);
     switch (state) {
       case VideoEvent.pause:
+        await this.forcePause();
+        this.forceSeek(latencyAdjustedSeek);
+        break;
       // fall through
       case VideoEvent.seeking:
         const seekDifference = Math.abs(latencyAdjustedSeek - this.video.currentTime);

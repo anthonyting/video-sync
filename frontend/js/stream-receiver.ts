@@ -102,21 +102,21 @@ class VideoReceiverController extends VideoController {
 
     switch (response.type) {
       case MessageTypes.RESPOND:
-        this.showNotification("Connected to host.");
-      // fall through
+        // this.showNotification("Connected to host.");
+        // fall through
       case MessageTypes.DISPATCH:
         await this.invokeState(response.request, response, responseReceivedAt);
         break;
       case MessageTypes.TIME:
         break;
       case MessageTypes.DISCONNECT:
-        this.showNotification("The host disconnected. Wait for them to reconnect.");
+        // this.showNotification("The host disconnected. Wait for them to reconnect.");
         this.hostDisconnected = true;
         await this.forcePause();
         break;
       case MessageTypes.CONNECT:
         if (this.hostDisconnected) {
-          this.showNotification("The host has connected. Wait for them to start playing");
+          // this.showNotification("The host has connected. Wait for them to start playing");
           this.hostDisconnected = false;
         }
         break;
