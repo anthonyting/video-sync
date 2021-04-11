@@ -249,7 +249,10 @@ export abstract class VideoController {
         }
         this.forcePlay()
           .then(() => this.waitForBuffering())
-          .catch(console.warn)
+          .catch(err => {
+            console.warn(err);
+            this.showNotification("Click play to start", -1);
+          })
           .finally(() => {
             const bufferAdjustment = Date.now() - responseReceivedAt + 50;
             console.log(`Buffer adjustment: ${bufferAdjustment}ms`);
@@ -371,11 +374,11 @@ export abstract class VideoController {
     return this.doneBuffering;
   }
 
-  protected hideNotification() {
+  public hideNotification() {
     this.notification.hide();
   }
 
-  protected showNotification(message: string, delay = 2500) {
+  public showNotification(message: string, delay = 2500) {
     this.notification.show(message, delay);
   }
 
@@ -410,7 +413,6 @@ export abstract class VideoController {
 
   protected reconnect() {
     console.log("Playback reconnected");
-    this.showNotification("Connecting to host...");
   }
 
   protected setVideoEvent(type: VideoEvent, callback: (ev: Event) => any) {

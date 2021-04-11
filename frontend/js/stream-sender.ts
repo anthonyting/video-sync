@@ -136,32 +136,35 @@ async function onLoad() {
   continueContainer.classList.add('d-none');
   const startTime = new Promise<number>(resolve => {
     const lastSavedTime = Number(VideoController.getData("time"));
-    if (lastSavedTime) {
-      continueContainer.classList.remove('d-none');
-      continueContainer.classList.add('d-flex');
+    const lastSavedDuration = Number(VideoController.getData("duration"));
+    video.addEventListener("loadedmetadata", e => {
+      if (lastSavedTime && Math.abs(lastSavedDuration - video.duration) < 0.5) {
+        continueContainer.classList.remove('d-none');
+        continueContainer.classList.add('d-flex');
 
-      continueContainer.querySelector('.header').textContent = `Continue from ${new Date(lastSavedTime * 1000).toISOString().substr(11, 8)}?`;
-      const yesButton = <HTMLButtonElement>continueContainer.querySelector('.btn-primary');
-      const noButton = <HTMLButtonElement>continueContainer.querySelector('.btn-danger');
-      yesButton.addEventListener('click', () => {
-        resolve(lastSavedTime);
-      });
-      noButton.addEventListener('click', () => {
+        continueContainer.querySelector('.header').textContent = `Continue from ${new Date(lastSavedTime * 1000).toISOString().substr(11, 8)}?`;
+        const yesButton = <HTMLButtonElement>continueContainer.querySelector('.btn-primary');
+        const noButton = <HTMLButtonElement>continueContainer.querySelector('.btn-danger');
+        yesButton.addEventListener('click', () => {
+          resolve(lastSavedTime);
+        });
+        noButton.addEventListener('click', () => {
+          resolve(0);
+        });
+      } else {
         resolve(0);
-      });
-    } else {
-      resolve(0);
-    }
+      }
+    });
   });
 
   const socket = await setupWebSocket(false);
-  VideoController.setData('duration', video.duration.toString());
 
   const toast = document.getElementById('toast');
   new VideoSenderController(video, socket, toast, 0);
   startTime.then(time => {
     video.currentTime = time;
     continueContainer.classList.add('d-none');
+    VideoController.setData('duration', video.duration.toString());
   });
   video.removeAttribute('disabled');
 }

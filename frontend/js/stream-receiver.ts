@@ -68,6 +68,7 @@ class VideoReceiverController extends VideoController {
           this.reconnect();
         }).catch(err => {
           console.error(err);
+          this.showNotification("Click play to start", -1);
           this.reconnectOnPlay = true;
         });
       });
