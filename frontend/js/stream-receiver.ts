@@ -64,11 +64,10 @@ class VideoReceiverController extends VideoController {
       });
     } else {
       this.video.addEventListener('loadedmetadata', () => {
-        this.forcePlay().then(() => {
+        this.forcePlay().finally(() => {
           this.reconnect();
         }).catch(err => {
           console.error(err);
-          this.showNotification("Click play to start", -1);
           this.reconnectOnPlay = true;
         });
       });
