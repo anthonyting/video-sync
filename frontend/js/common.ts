@@ -287,7 +287,7 @@ export abstract class VideoController {
 
     this.video.pause();
     const previousTime = this.video.currentTime;
-    this.video.querySelector('source').src = `${this.video.src.slice(0, -4)}${this.isHighQuality ? "-720" : ""}.mp4`;
+    this.video.querySelector('source').src = `${this.video.querySelector('source').src.slice(0, -4)}${this.isHighQuality ? "-720" : ""}.mp4`;
     const onVideoLoad = () => {
       this.video.currentTime = previousTime;
       this.video.removeEventListener('loadeddata', onVideoLoad);
