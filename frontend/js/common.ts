@@ -235,7 +235,7 @@ export abstract class VideoController {
         this.forceSeek(latencyAdjustedSeek);
         break;
       case VideoEvent.playing:
-        // fall through
+      // fall through
       case VideoEvent.play: {
         console.log(`Latency adjustment: ${latencyAdjustment}ms`);
         const additionalSeek = this.isSeeking ? await this.timeSpentSeeking : 0;
@@ -288,6 +288,8 @@ export abstract class VideoController {
     this.video.pause();
     const previousTime = this.video.currentTime;
     this.video.querySelector('source').src = `${this.video.querySelector('source').src.slice(0, -4)}${this.isHighQuality ? "-720" : ""}.mp4`;
+    this.video.load();
+    this.reconnect();
     const onVideoLoad = () => {
       this.video.currentTime = previousTime;
       this.video.removeEventListener('loadeddata', onVideoLoad);
