@@ -94,7 +94,7 @@ router.post('/queue/:key', requireRole({
     const parsed = path.parse(realPath);
     const outputName = parsed.name;
     const video = await (new ffmpeg(realPath));
-    video.addCommand('-acodec', 'mp3');
+    video.addCommand('-acodec', 'aac');
     video.addCommand('-vcodec', 'copy');
     video.addCommand('-af', `"pan=stereo|FL=0.5*FC+0.707*FL+0.707*BL+0.5*LFE|FR=0.5*FC+0.707*FR+0.707*BR+0.5*LFE"`);
     video.addCommand('-y', '');
